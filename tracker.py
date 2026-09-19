@@ -1,12 +1,12 @@
 import os
 import re
 import json
+import time
 from datetime import datetime, timezone
 import requests
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 import markdown
-import time
 
 NEWS_URL = "https://ingress.com/news"
 OUTPUT_DIR = "public"
@@ -88,7 +88,6 @@ TRANSLATIONS = {
     }
 }
 
-# Données validées pour les saisons passées
 HISTORICAL_SEASONS = {
     "2025-plusbeta": {
         "title": {"fr": "+Beta (2025)", "en": "+Beta (2025)"},
@@ -182,6 +181,13 @@ HISTORICAL_SEASONS = {
     }
 }
 
+QUARTER_ORDER = [
+    "cygnus", "plusbeta", "discoverie",
+    "apollo", "ctrl",
+    "orion", "echo",
+    "plusgamma", "plusdelta", "epiphany-dawn", "kythera"
+]
+
 
 def clean_text(cell):
     return cell.get_text(strip=True).replace("\xa0", " ")
@@ -192,8 +198,21 @@ def normalize_city_name(name):
     return clean.strip()
 
 
+def get_slug_sort_score(slug):
+    parts = slug.split("-")
+    year = int(parts[0]) if parts[0].isdigit() else 2020
+    name = "-".join(parts[1:]).lower() if len(parts) > 1 else slug.lower()
+
+    quarter_rank = 99
+    for idx, q in enumerate(QUARTER_ORDER):
+        if q in name:
+            quarter_rank = idx
+            break
+
+    return (-year, quarter_rank)
+
+
 def parse_with_gemini(html_content):
-    """Analyse structurée avec gestion de charge (retry + fallback de modèles)."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return None
@@ -233,11 +252,10 @@ Consignes strictes :
 - Dans "sites", ne mets que les villes majeures, pas les doublons.
 """
 
-        # Modèles testés en cascade si surcharge 503
-        models_to_try = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+        models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
 
         for model_name in models_to_try:
-            for attempt in range(2):  # 2 essais par modèle
+            for attempt in range(2):
                 try:
                     response = client.models.generate_content(
                         model=model_name,
@@ -259,6 +277,7 @@ Consignes strictes :
     except Exception as e:
         print(f"Extraction IA non disponible (repli sur analyse classique) : {e}")
         return None
+
 
 def discover_anomaly_seasons(max_pages=3):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
@@ -315,21 +334,6 @@ def discover_anomaly_seasons(max_pages=3):
             print(f"Erreur sur la page {page} : {e}")
             break
 
-    modern_known = {
-        "2026-cygnus": ("Cygnus (2026)", "https://ingress.com/news/2026-cygnus", "upcoming"),
-        "2026-apollo": ("Apollo (2026)", "https://ingress.com/news/2026-apollo-results", "active"),
-        "2026-orion": ("Orion (2026)", "https://ingress.com/news/2026-orion-results", "archived"),
-        "2026-plusgamma": ("+Gamma (2026)", "https://ingress.com/news/2026-plusgamma-results", "archived")
-    }
-
-    for k_slug, (k_title, k_url, k_status) in modern_known.items():
-        if k_slug not in discovered:
-            discovered[k_slug] = {
-                "title": {"fr": k_title, "en": k_title},
-                "url": k_url,
-                "status": k_status
-            }
-
     for h_slug, h_data in HISTORICAL_SEASONS.items():
         discovered[h_slug] = h_data
 
@@ -376,12 +380,11 @@ def fetch_raw_data(url, status, slug):
             "is_upcoming": True
         }
 
-    # Tentative d'analyse avec l'IA pour la saison en cours (Apollo)
-    if slug == "2026-apollo" and os.getenv("GEMINI_API_KEY"):
-        print("Analyse IA en cours avec Gemini...")
+    if os.getenv("GEMINI_API_KEY") and html_text:
+        print(f"Analyse IA en cours avec Gemini pour {slug}...")
         ai_result = parse_with_gemini(html_text)
         if ai_result and "season_overview" in ai_result and ai_result["season_overview"]:
-            print("Extraction IA validée avec succès !")
+            print(f"Extraction IA validée pour {slug} !")
             has_pending = any(item["enl"] == "??" or item["res"] == "??" for item in ai_result["season_overview"])
             return {
                 "banner": banner,
@@ -391,7 +394,6 @@ def fetch_raw_data(url, status, slug):
                 "is_upcoming": False
             }
 
-    # Analyse de secours par scraping BeautifulSoup
     season_overview_raw = []
     has_pending_scores = False
 
@@ -669,30 +671,20 @@ def main():
         except Exception as e:
             print(f"Erreur sur {slug} : {e}")
 
-    # Détermination de la saison en cours (Apollo 2026)
+    sorted_slugs = sorted(scraped_data.keys(), key=get_slug_sort_score)
+
     active_slug = None
-    for s_slug in ["2026-apollo", "2026-orion", "2026-plusgamma"]:
-        if s_slug in scraped_data and scraped_data[s_slug].get("has_pending_scores"):
+    for s_slug in sorted_slugs:
+        info = seasons.get(s_slug, {})
+        if info.get("status") != "upcoming" and scraped_data[s_slug].get("has_pending_scores"):
             active_slug = s_slug
             break
 
-    if active_slug is None and "2026-apollo" in scraped_data:
-        active_slug = "2026-apollo"
-
-    # Ordre chronologique strict du plus récent au plus ancien
-    SEASON_CHRONO = [
-        "2026-cygnus",
-        "2026-apollo",
-        "2026-orion",
-        "2026-plusgamma",
-        "2025-plusbeta",
-        "2025-plusdelta",
-        "2023-discoverie",
-        "2023-ctrl",
-        "2023-echo",
-        "2022-epiphany-dawn",
-        "2022-kythera"
-    ]
+    if active_slug is None:
+        for s_slug in sorted_slugs:
+            if seasons.get(s_slug, {}).get("status") != "upcoming":
+                active_slug = s_slug
+                break
 
     for lang in ["fr", "en"]:
         t = TRANSLATIONS[lang]
@@ -740,9 +732,8 @@ def main():
 
         def sort_key(card):
             state_prio = {"upcoming": 0, "live": 1, "archived": 2}.get(card["card_state"], 3)
-            slug = card["slug"]
-            chrono_idx = SEASON_CHRONO.index(slug) if slug in SEASON_CHRONO else 99
-            return (state_prio, chrono_idx)
+            chrono_score = get_slug_sort_score(card["slug"])
+            return (state_prio, chrono_score)
 
         hub_cards.sort(key=sort_key)
 
