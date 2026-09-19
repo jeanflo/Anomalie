@@ -4,21 +4,16 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
+import markdown
 
-# Dictionnaire des saisons à surveiller (Slug du fichier : {Titre, URL})
 SEASONS = {
     "2026-apollo": {
         "title": "Apollo (2026)",
         "url": "https://ingress.com/news/2026-apollo-results"
-    },
-    # Tu pourras ajouter les prochaines séries ici au fil de l'eau :
-    # "2026-q4-season": {
-    #     "title": "Prochaine Saison (2026)",
-    #     "url": "https://ingress.com/news/2026-q4-season-results"
-    # }
+    }
 }
 
-OUTPUT_DIR = "output"
+OUTPUT_DIR = "public"
 
 
 def clean_text(cell):
@@ -34,11 +29,16 @@ def process_season(slug, info, env):
         res = requests.get(url, headers=headers, timeout=15)
         res.raise_for_status()
     except Exception as e:
-        print(f"Erreur lors de la récupération de {slug} ({url}) : {e}")
+        print(f"Erreur sur {slug} : {e}")
         return None
 
     soup = BeautifulSoup(res.text, "html.parser")
 
+    # 1. Extraction de la bannière officielle
+    og_image = soup.find("meta", property="og:image")
+    banner = og_image["content"] if og_image else "https://placehold.co/600x300/141c2e/FFF?text=Anomaly"
+
+    # 2. Parsing des scores
     season_overview = []
     enl_sum = 0.0
     res_sum = 0.0
@@ -75,12 +75,13 @@ def process_season(slug, info, env):
                     "winner": winner
                 })
 
+    # 3. Détail par site
     sites_data = []
     site_headers = soup.find_all(string=re.compile(r"Site:\s*(\w+)", re.IGNORECASE))
     for sh in site_headers:
         site_name = sh.strip().replace("Site:", "").strip()
         parent_container = sh.find_parent(["div", "section"]) or soup
-
+        
         site_dict = {
             "name": site_name,
             "enl_pts": "??",
@@ -104,8 +105,9 @@ def process_season(slug, info, env):
 
         sites_data.append(site_dict)
 
-    tmpl = env.get_template("template.md.j2")
-    rendered = tmpl.render(
+    # 4. Rendu Markdown puis compilation HTML
+    tmpl_md = env.get_template("template.md.j2")
+    rendered_md = tmpl_md.render(
         season_title=title,
         updated_at=datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
         enl_total=round(enl_sum, 1),
@@ -115,17 +117,26 @@ def process_season(slug, info, env):
         sites=sites_data
     )
 
-    out_file = os.path.join(OUTPUT_DIR, f"{slug}.md")
-    with open(out_file, "w", encoding="utf-8") as f:
-        f.write(rendered)
+    # Écriture du .md
+    with open(os.path.join(OUTPUT_DIR, f"{slug}.md"), "w", encoding="utf-8") as f:
+        f.write(rendered_md)
 
-    print(f"Génération terminée : {out_file}")
+    # Écriture du .html pour le web
+    html_content = markdown.markdown(rendered_md, extensions=["tables"])
+    tmpl_detail = env.get_template("detail_template.html.j2")
+    rendered_html = tmpl_detail.render(title=title, content=html_content)
+
+    with open(os.path.join(OUTPUT_DIR, f"{slug}.html"), "w", encoding="utf-8") as f:
+        f.write(rendered_html)
+
     return {
         "title": title,
         "slug": slug,
-        "file": f"{slug}.md",
+        "banner": banner,
+        "html_file": f"{slug}.html",
         "enl": round(enl_sum, 1),
-        "res": round(res_sum, 1)
+        "res": round(res_sum, 1),
+        "diff": round(res_sum - enl_sum, 1)
     }
 
 
@@ -133,22 +144,23 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     env = Environment(loader=FileSystemLoader("."))
 
-    processed = []
+    hub_cards = []
     for slug, info in SEASONS.items():
-        res = process_season(slug, info, env)
-        if res:
-            processed.append(res)
+        data = process_season(slug, info, env)
+        if data:
+            hub_cards.append(data)
 
-    # Génération d'un index README.md dans output/ pour lister toutes les séries
-    index_md = "# 🏆 Archives des Anomalies Ingress\n\n"
-    index_md += f"> Mis à jour le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n\n"
-    index_md += "| Série / Saison | 🟢 Score ENL | 🔵 Score RES | Lien |\n"
-    index_md += "| :--- | :---: | :---: | :--- |\n"
-    for item in processed:
-        index_md += f"| **{item['title']}** | {item['enl']} | {item['res']} | [Consulter le détail]({item['file']}) |\n"
+    # Rendu du Hub index.html
+    tmpl_hub = env.get_template("hub_template.html.j2")
+    rendered_hub = tmpl_hub.render(
+        seasons=hub_cards,
+        updated_at=datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    )
 
-    with open(os.path.join(OUTPUT_DIR, "README.md"), "w", encoding="utf-8") as f:
-        f.write(index_md)
+    with open(os.path.join(OUTPUT_DIR, "index.html"), "w", encoding="utf-8") as f:
+        f.write(rendered_hub)
+
+    print(f"Hub généré avec succès dans {OUTPUT_DIR}/")
 
 
 if __name__ == "__main__":
