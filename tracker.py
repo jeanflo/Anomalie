@@ -280,6 +280,7 @@ Consignes strictes :
 
 
 def discover_anomaly_seasons(max_pages=3):
+    """Détection souple des articles d'anomalies sur /news (Méthode 3)."""
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
     discovered = {}
 
@@ -294,21 +295,32 @@ def discover_anomaly_seasons(max_pages=3):
 
             for a in links:
                 href = a["href"].strip()
-                title_text = clean_text(a)
+                title_lower = clean_text(a).lower()
+                href_lower = href.lower()
 
-                is_results = bool(re.search(r"-results/?$", href)) or bool(re.search(r"anomaly\s+season\s*-\s*results", title_text, re.IGNORECASE))
-                is_overview = bool(re.search(r"anomaly\s+season\s*-\s*overview", title_text, re.IGNORECASE)) or bool(re.search(r"-overview/?$", href))
+                # Vérifie la présence des mots-clés dans le lien OU le texte du lien
+                has_anomaly = "anomaly" in title_lower or "anomaly" in href_lower
+                has_results = any(k in title_lower or k in href_lower for k in ["result", "score"])
+                has_overview = any(k in title_lower or k in href_lower for k in ["overview", "schedule", "rule"])
+
+                is_results = has_anomaly and has_results
+                is_overview = has_anomaly and has_overview
 
                 if not (is_results or is_overview):
                     continue
 
-                match_slug = re.search(r"/news/(\d{4}-[\w-]+?)(?:-(?:results|overview))?/?$", href)
+                # Extraction propre du slug
+                match_slug = re.search(r"/news/([^/?#]+)", href)
                 if not match_slug:
                     continue
 
-                slug = match_slug.group(1).replace("-results", "").replace("-overview", "")
-                if any(bad in slug.lower() for bad in ["anomalysites", "schedule", "rules", "guidelines"]):
+                raw_slug = match_slug.group(1)
+                # Exclusion des articles techniques satellites
+                if any(bad in raw_slug.lower() for bad in ["anomalysites", "guidelines", "faq", "instability"]):
                     continue
+
+                # Nettoyage du suffixe
+                slug = re.sub(r"-(?:results|overview|rules|schedule)$", "", raw_slug, flags=re.IGNORECASE)
 
                 full_url = href if href.startswith("http") else f"https://ingress.com{href}"
                 parts = slug.split("-")
@@ -334,6 +346,7 @@ def discover_anomaly_seasons(max_pages=3):
             print(f"Erreur sur la page {page} : {e}")
             break
 
+    # Intégration des archives validées
     for h_slug, h_data in HISTORICAL_SEASONS.items():
         discovered[h_slug] = h_data
 
