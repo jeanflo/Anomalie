@@ -18,6 +18,7 @@ TRANSLATIONS = {
         "hub_title": "XM Anomaly Hub",
         "hub_subtitle": "Suivi centralisé et synthèses des saisons d'anomalies Ingress",
         "back": "← Retour au Hub",
+        "official_article": "📄 Article Officiel Niantic",
         "last_update": "Dernière actualisation le",
         "waiting": "⏳ En attente",
         "tie": "Égalité",
@@ -54,6 +55,7 @@ TRANSLATIONS = {
         "hub_title": "XM Anomaly Hub",
         "hub_subtitle": "Centralized tracking and summaries of Ingress anomaly seasons",
         "back": "← Back to Hub",
+        "official_article": "📄 Official Niantic Article",
         "last_update": "Last updated on",
         "waiting": "⏳ Pending",
         "tie": "Tie",
@@ -84,7 +86,6 @@ TRANSLATIONS = {
     }
 }
 
-# Archives 2022-2023 : le scraper va lire directement l'URL de règles pour récupérer og:image
 HISTORICAL_SEASONS = {
     "2023-discoverie": {
         "title": {"fr": "Discoverie (2023)", "en": "Discoverie (2023)"},
@@ -210,7 +211,6 @@ def discover_anomaly_seasons(max_pages=3):
             print(f"Erreur sur la page {page} : {e}")
             break
 
-    # Saisons modernes garanties
     modern_known = {
         "2026-cygnus": ("Cygnus (2026)", "https://ingress.com/news/2026-cygnus", "upcoming"),
         "2026-apollo": ("Apollo (2026)", "https://ingress.com/news/2026-apollo-results", "active"),
@@ -228,7 +228,6 @@ def discover_anomaly_seasons(max_pages=3):
                 "status": k_status
             }
 
-    # Fusion avec les archives historiques (2022-2023)
     for h_slug, h_data in HISTORICAL_SEASONS.items():
         if h_slug not in discovered:
             discovered[h_slug] = h_data
@@ -244,8 +243,7 @@ def fetch_raw_data(url, status, slug):
         res = requests.get(url, headers=headers, timeout=15)
         res.raise_for_status()
         soup = BeautifulSoup(res.text, "html.parser")
-        
-        # Extraction de la bannière officielle de la page
+
         og_image = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
         if og_image and og_image.get("content"):
             banner = og_image["content"].strip()
@@ -255,7 +253,6 @@ def fetch_raw_data(url, status, slug):
         print(f"Erreur de chargement pour {slug} ({url}) : {e}")
         soup = BeautifulSoup("", "html.parser")
 
-    # Si c'est une saison historique aux règles particulières
     if slug in HISTORICAL_SEASONS:
         hist = HISTORICAL_SEASONS[slug]
         return {
@@ -267,7 +264,6 @@ def fetch_raw_data(url, status, slug):
             "preset_totals": (hist["enl_total"], hist["res_total"])
         }
 
-    # Si c'est une saison future
     if status == "upcoming":
         return {
             "banner": banner,
@@ -277,7 +273,6 @@ def fetch_raw_data(url, status, slug):
             "is_upcoming": True
         }
 
-    # Saisons modernes : extraction standard
     season_overview_raw = []
     has_pending_scores = False
 
@@ -435,7 +430,8 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         title=title,
         content=html_content,
         t=t,
-        slug=slug
+        slug=slug,
+        official_url=info["url"]
     )
 
     with open(os.path.join(target_dir, f"{slug}.html"), "w", encoding="utf-8") as f:
@@ -484,7 +480,6 @@ def main():
                 active_slug = s
                 break
 
-    # Ordre chronologique strict du plus récent au plus ancien
     SEASON_CHRONO = [
         "2026-cygnus",
         "2026-apollo",
@@ -517,7 +512,6 @@ def main():
                 card = process_season_for_lang(slug, info, data, card_state, lang, t, env, now_iso)
                 hub_cards.append(card)
 
-        # Calcul du palmarès global sur les saisons archivées
         enl_wins = 0
         res_wins = 0
         ties = 0
@@ -544,7 +538,6 @@ def main():
             "res_pct": res_pct
         }
 
-        # Tri : UPCOMING (0) -> LIVE (1) -> ARCHIVED (2) ordonné chronologiquement
         def sort_key(card):
             state_prio = {"upcoming": 0, "live": 1, "archived": 2}.get(card["card_state"], 3)
             slug = card["slug"]
