@@ -1,4 +1,4 @@
-name: Actualisation Anomalies Ingress
+name: Déploiement Anomaly Hub
 
 on:
   schedule:
@@ -7,9 +7,11 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Récupération du code
@@ -23,12 +25,16 @@ jobs:
       - name: Installation des dépendances
         run: pip install -r requirements.txt
 
-      - name: Exécution du scraper
+      - name: Génération du Hub et des synthèses
         run: python tracker.py
 
-      - name: Commit et push des résultats
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Mise à jour des scores Apollo" && git push)
+      - name: Configuration GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload de l'artefact Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'public'
+
+      - name: Déploiement sur GitHub Pages
+        uses: actions/deploy-pages@v4
