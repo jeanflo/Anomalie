@@ -76,7 +76,7 @@ TRANSLATIONS = {
     }
 }
 
-# Archives 2022-2023 aux formats spécifiques (Phases / Multipliers / Final Reports)
+# Archives 2022-2023 aux formats spécifiques avec visuels hébergés de manière stable
 HISTORICAL_SEASONS = {
     "2023-discoverie": {
         "title": {"fr": "Discoverie (2023)", "en": "Discoverie (2023)"},
@@ -147,6 +147,7 @@ HISTORICAL_SEASONS = {
     }
 }
 
+
 def clean_text(cell):
     return cell.get_text(strip=True).replace("\xa0", " ")
 
@@ -206,7 +207,7 @@ def discover_anomaly_seasons(max_pages=3):
             print(f"Erreur sur la page {page} : {e}")
             break
 
-    # Saisons modernes connues garanties (2024-2026)
+    # Saisons modernes garanties
     modern_known = {
         "2026-cygnus": ("Cygnus (2026)", "https://ingress.com/news/2026-cygnus", "upcoming"),
         "2026-apollo": ("Apollo (2026)", "https://ingress.com/news/2026-apollo-results", "active"),
@@ -467,6 +468,21 @@ def main():
                 active_slug = s
                 break
 
+    # Ordre chronologique de référence
+    SEASON_CHRONO = [
+        "2026-cygnus",
+        "2026-apollo",
+        "2026-orion",
+        "2026-plusgamma",
+        "2025-plusbeta",
+        "2025-plusdelta",
+        "2023-discoverie",
+        "2023-ctrl",
+        "2023-echo",
+        "2022-epiphany-dawn",
+        "2022-kythera"
+    ]
+
     for lang in ["fr", "en"]:
         t = TRANSLATIONS[lang]
         dest_dir = OUTPUT_DIR if lang == "fr" else os.path.join(OUTPUT_DIR, "en")
@@ -485,13 +501,14 @@ def main():
                 card = process_season_for_lang(slug, info, data, card_state, lang, t, env, now_iso)
                 hub_cards.append(card)
 
-        # Ordre d'affichage : UPCOMING (0) -> LIVE (1) -> ARCHIVED triées par date décroissante (2)
-        order = {"upcoming": 0, "live": 1, "archived": 2}
-        hub_cards.sort(key=lambda c: (
-            order.get(c["card_state"], 3),
-            -int(c["slug"][:4]) if c["slug"][:4].isdigit() else 0,
-            c["slug"]
-        ))
+        # Tri strict : UPCOMING (0) -> LIVE (1) -> ARCHIVED (2) ordonné chronologiquement
+        def sort_key(card):
+            state_prio = {"upcoming": 0, "live": 1, "archived": 2}.get(card["card_state"], 3)
+            slug = card["slug"]
+            chrono_idx = SEASON_CHRONO.index(slug) if slug in SEASON_CHRONO else 99
+            return (state_prio, chrono_idx)
+
+        hub_cards.sort(key=sort_key)
 
         tmpl_hub = env.get_template("hub_template.html.j2")
         rendered_hub = tmpl_hub.render(
