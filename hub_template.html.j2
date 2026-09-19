@@ -11,6 +11,7 @@
       --border: rgba(255, 255, 255, 0.08);
       --res-blue: #00bbff;
       --enl-green: #00e676;
+      --warn-yellow: #ffb703;
       --text: #f1f5f9;
       --text-muted: #94a3b8;
     }
@@ -76,24 +77,31 @@
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
     }
 
-    /* Style distinctif de l'anomalie en cours */
-    .card-active {
+    /* Carte en direct */
+    .card-live {
       border: 2px solid var(--res-blue);
-      box-shadow: 0 0 20px rgba(0, 187, 255, 0.25);
+      box-shadow: 0 0 22px rgba(0, 187, 255, 0.25);
     }
-    .card-active:hover {
+    .card-live:hover {
       box-shadow: 0 0 32px rgba(0, 187, 255, 0.45);
     }
 
-    /* Badge rouge clignotant En Direct / Live */
-    .live-indicator {
+    /* Carte à venir */
+    .card-upcoming {
+      border: 1px dashed var(--warn-yellow);
+      box-shadow: 0 0 16px rgba(255, 183, 3, 0.15);
+    }
+    .card-upcoming:hover {
+      box-shadow: 0 0 24px rgba(255, 183, 3, 0.35);
+    }
+
+    /* Badges sur bannière */
+    .banner-badge {
       position: absolute;
       top: 12px;
       right: 12px;
       background: rgba(11, 15, 25, 0.88);
       backdrop-filter: blur(4px);
-      color: #ff3344;
-      border: 1px solid rgba(255, 51, 68, 0.6);
       font-size: 0.72rem;
       font-weight: 800;
       letter-spacing: 0.8px;
@@ -105,6 +113,15 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
       z-index: 2;
     }
+    .badge-live-tag {
+      color: #ff3344;
+      border: 1px solid rgba(255, 51, 68, 0.6);
+    }
+    .badge-upcoming-tag {
+      color: var(--warn-yellow);
+      border: 1px solid rgba(255, 183, 3, 0.6);
+    }
+
     .pulse-dot {
       width: 8px;
       height: 8px;
@@ -148,6 +165,7 @@
     }
     .badge-res { background: rgba(0, 187, 255, 0.15); color: var(--res-blue); border: 1px solid var(--res-blue); }
     .badge-enl { background: rgba(0, 230, 118, 0.15); color: var(--enl-green); border: 1px solid var(--enl-green); }
+    .badge-upcoming { background: rgba(255, 183, 3, 0.15); color: var(--warn-yellow); border: 1px solid var(--warn-yellow); }
     .title {
       font-size: 1.25rem;
       margin: 0 0 1.2rem 0;
@@ -183,12 +201,16 @@
 
   <main class="grid">
     {% for s in seasons %}
-    <a href="{{ s.html_file }}" class="card {% if s.is_active %}card-active{% endif %}">
+    <a href="{{ s.html_file }}" class="card card-{{ s.card_state }}">
       <div class="banner-wrapper">
-        {% if s.is_active %}
-        <div class="live-indicator">
+        {% if s.card_state == 'live' %}
+        <div class="banner-badge badge-live-tag">
           <div class="pulse-dot"></div>
           <span>{{ t.badge_live }}</span>
+        </div>
+        {% elif s.card_state == 'upcoming' %}
+        <div class="banner-badge badge-upcoming-tag">
+          <span>{{ t.badge_upcoming }}</span>
         </div>
         {% endif %}
         <img src="{{ s.banner }}" alt="{{ s.title }}" class="banner" onerror="this.src='https://placehold.co/600x300/141c2e/FFF?text=Anomaly'">
@@ -200,8 +222,12 @@
           <h2 class="title">{{ s.title }}</h2>
         </div>
         <div class="scores">
+          {% if s.card_state == 'upcoming' %}
+          <div style="width: 100%; text-align: center; color: var(--text-muted);">{{ t.scores_pending }}</div>
+          {% else %}
           <div>🟢 ENL : <span class="score-enl">{{ s.enl }}</span></div>
           <div>🔵 RES : <span class="score-res">{{ s.res }}</span></div>
+          {% endif %}
         </div>
       </div>
     </a>
