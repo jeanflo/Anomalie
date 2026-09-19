@@ -71,5 +71,20 @@
     <a href="{{ t.switch_url }}{{ slug }}.html" class="lang-btn">{{ t.switch_label }}</a>
   </div>
   {{ content }}
+
+  <script>
+    document.querySelectorAll('.local-date').forEach(el => {
+      const isoString = el.getAttribute('datetime') || el.textContent.trim();
+      if (isoString) {
+        const date = new Date(isoString);
+        if (!isNaN(date.getTime())) {
+          el.textContent = date.toLocaleString('{{ t.lang_code }}', {
+            dateStyle: 'short',
+            timeStyle: 'medium'
+          });
+        }
+      }
+    });
+  </script>
 </body>
 </html>
