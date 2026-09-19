@@ -53,8 +53,6 @@
       text-transform: uppercase;
       margin: 0 0 0.5rem 0;
     }
-
-    /* Bandeau palmarès global */
     .standings-banner {
       max-width: 760px;
       margin: 0 auto 3rem auto;
@@ -99,8 +97,6 @@
       color: var(--text-muted);
       font-size: 0.8rem;
     }
-
-    /* Jauge comparative bicolore */
     .ratio-bar {
       height: 8px;
       width: 100%;
@@ -122,7 +118,6 @@
       box-shadow: 0 0 10px rgba(0, 187, 255, 0.5);
       transition: width 0.6s ease;
     }
-
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -146,7 +141,6 @@
       transform: translateY(-4px);
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
     }
-
     .card-live {
       border: 2px solid var(--res-blue);
       box-shadow: 0 0 22px rgba(0, 187, 255, 0.25);
@@ -154,7 +148,6 @@
     .card-live:hover {
       box-shadow: 0 0 32px rgba(0, 187, 255, 0.45);
     }
-
     .card-upcoming {
       border: 1px dashed var(--warn-yellow);
       box-shadow: 0 0 16px rgba(255, 183, 3, 0.15);
@@ -162,7 +155,6 @@
     .card-upcoming:hover {
       box-shadow: 0 0 24px rgba(255, 183, 3, 0.35);
     }
-
     .banner-badge {
       position: absolute;
       top: 12px;
@@ -188,7 +180,6 @@
       color: var(--warn-yellow);
       border: 1px solid rgba(255, 183, 3, 0.6);
     }
-
     .pulse-dot {
       width: 8px;
       height: 8px;
@@ -201,7 +192,6 @@
       70% { transform: scale(1.1); box-shadow: 0 0 0 7px rgba(255, 51, 68, 0); }
       100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 51, 68, 0); }
     }
-
     .banner-wrapper {
       position: relative;
       width: 100%;
@@ -266,7 +256,6 @@
     <p style="color: var(--text-muted);">{{ t.hub_subtitle }}</p>
   </header>
 
-  <!-- Bandeau palmarès global -->
   <section class="standings-banner">
     <div class="standings-title">{{ t.global_victories }}</div>
     <div class="standings-counts">
