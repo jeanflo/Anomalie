@@ -28,6 +28,10 @@ TRANSLATIONS = {
         "badge_live": "🔴 EN DIRECT",
         "badge_upcoming": "🟡 PROCHAINEMENT",
         "scores_pending": "Scores à venir",
+        "global_victories": "Palmarès Global des Saisons",
+        "victories_enl": "Victoires ENL",
+        "victories_res": "Victoires RES",
+        "ties": "Égalités",
         "global_res_lead": "🔵 <strong>La Résistance mène</strong> avec <strong>{res}</strong> contre <strong>{enl}</strong> pts (+{diff} pts)",
         "global_enl_lead": "🟢 <strong>Les Éclairés mènent</strong> avec <strong>{enl}</strong> contre <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Égalité parfaite</strong> : {enl} pts",
@@ -60,6 +64,10 @@ TRANSLATIONS = {
         "badge_live": "🔴 LIVE",
         "badge_upcoming": "🟡 UPCOMING",
         "scores_pending": "Scores coming soon",
+        "global_victories": "Overall Season Standings",
+        "victories_enl": "ENL Victories",
+        "victories_res": "RES Victories",
+        "ties": "Ties",
         "global_res_lead": "🔵 <strong>The Resistance leads</strong> with <strong>{res}</strong> against <strong>{enl}</strong> pts (+{diff} pts)",
         "global_enl_lead": "🟢 <strong>The Enlightened lead</strong> with <strong>{enl}</strong> against <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Perfect tie</strong>: {enl} pts",
@@ -76,7 +84,7 @@ TRANSLATIONS = {
     }
 }
 
-# Archives 2022-2023 aux formats spécifiques avec visuels hébergés de manière stable
+# Archives 2022-2023 : le scraper va lire directement l'URL de règles pour récupérer og:image
 HISTORICAL_SEASONS = {
     "2023-discoverie": {
         "title": {"fr": "Discoverie (2023)", "en": "Discoverie (2023)"},
@@ -237,18 +245,17 @@ def fetch_raw_data(url, status, slug):
         res.raise_for_status()
         soup = BeautifulSoup(res.text, "html.parser")
         
-        # 1. Extraction de la véritable image de couverture officielle (og:image ou twitter:image)
+        # Extraction de la bannière officielle de la page
         og_image = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
         if og_image and og_image.get("content"):
             banner = og_image["content"].strip()
-            # Si le lien est relatif (/news/...), on le préfixe
             if banner.startswith("/"):
                 banner = f"https://ingress.com{banner}"
     except Exception as e:
         print(f"Erreur de chargement pour {slug} ({url}) : {e}")
         soup = BeautifulSoup("", "html.parser")
 
-    # Si c'est une saison historique aux règles particulières :
+    # Si c'est une saison historique aux règles particulières
     if slug in HISTORICAL_SEASONS:
         hist = HISTORICAL_SEASONS[slug]
         return {
@@ -260,7 +267,7 @@ def fetch_raw_data(url, status, slug):
             "preset_totals": (hist["enl_total"], hist["res_total"])
         }
 
-    # Si c'est une saison future :
+    # Si c'est une saison future
     if status == "upcoming":
         return {
             "banner": banner,
@@ -270,7 +277,7 @@ def fetch_raw_data(url, status, slug):
             "is_upcoming": True
         }
 
-    # Sinon : extraction automatique standard (2024-2026)
+    # Saisons modernes : extraction standard
     season_overview_raw = []
     has_pending_scores = False
 
@@ -477,7 +484,7 @@ def main():
                 active_slug = s
                 break
 
-    # Ordre chronologique de référence
+    # Ordre chronologique strict du plus récent au plus ancien
     SEASON_CHRONO = [
         "2026-cygnus",
         "2026-apollo",
@@ -510,7 +517,34 @@ def main():
                 card = process_season_for_lang(slug, info, data, card_state, lang, t, env, now_iso)
                 hub_cards.append(card)
 
-        # Tri strict : UPCOMING (0) -> LIVE (1) -> ARCHIVED (2) ordonné chronologiquement
+        # Calcul du palmarès global sur les saisons archivées
+        enl_wins = 0
+        res_wins = 0
+        ties = 0
+
+        for card in hub_cards:
+            if card["card_state"] == "archived":
+                if card["res"] > card["enl"]:
+                    res_wins += 1
+                elif card["enl"] > card["res"]:
+                    enl_wins += 1
+                else:
+                    ties += 1
+
+        total_completed = enl_wins + res_wins + ties
+        enl_pct = round((enl_wins / total_completed) * 100, 1) if total_completed > 0 else 50.0
+        res_pct = round((res_wins / total_completed) * 100, 1) if total_completed > 0 else 50.0
+
+        standings = {
+            "enl_wins": enl_wins,
+            "res_wins": res_wins,
+            "ties": ties,
+            "total": total_completed,
+            "enl_pct": enl_pct,
+            "res_pct": res_pct
+        }
+
+        # Tri : UPCOMING (0) -> LIVE (1) -> ARCHIVED (2) ordonné chronologiquement
         def sort_key(card):
             state_prio = {"upcoming": 0, "live": 1, "archived": 2}.get(card["card_state"], 3)
             slug = card["slug"]
@@ -522,6 +556,7 @@ def main():
         tmpl_hub = env.get_template("hub_template.html.j2")
         rendered_hub = tmpl_hub.render(
             seasons=hub_cards,
+            standings=standings,
             t=t,
             updated_at=now_iso
         )
