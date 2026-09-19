@@ -82,10 +82,15 @@ def process_season(slug, info, env):
         site_name = sh.strip().replace("Site:", "").strip()
         parent_container = sh.find_parent(["div", "section"]) or soup
         
+        # Récupère le score global du site depuis la vue d'ensemble si présent
+        site_overview = next((item for item in season_overview if item["name"].lower() == site_name.lower()), None)
+        total_enl = site_overview["enl"] if site_overview else "??"
+        total_res = site_overview["res"] if site_overview else "??"
+
         site_dict = {
             "name": site_name,
-            "enl_pts": "??",
-            "res_pts": "??",
+            "enl_pts": total_enl,
+            "res_pts": total_res,
             "special_ops": {"enl": "0.0", "res": "0.0"},
             "shards": {"enl": "??", "res": "??"},
             "beacons": {"enl": "??", "res": "??"},
@@ -97,11 +102,11 @@ def process_season(slug, info, env):
             if not c:
                 continue
             txt = c[0].lower()
+            # Sous-scores
             if "stealth ops" in txt and len(c) >= 3:
                 site_dict["special_ops"] = {"enl": c[1], "res": c[2]}
-            elif "season points" in txt and len(c) >= 3:
-                site_dict["enl_pts"] = c[1]
-                site_dict["res_pts"] = c[2]
+            elif "anomaly uniques" in txt and len(c) >= 3:
+                site_dict["uniques"] = {"enl": c[1], "res": c[2]}
 
         sites_data.append(site_dict)
 
