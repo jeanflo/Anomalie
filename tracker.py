@@ -82,7 +82,7 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Discoverie (2023)", "en": "Discoverie (2023)"},
         "url": "https://ingress.com/news/discoverie-rules",
         "status": "archived",
-        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_vr9RrqVzYnI52Yj8x15k0j4k-2tXhH8n4V6k-2w-w=w1200",
+        "banner": "https://ingress.com/assets/images/anomalies/discoverie/discoverie-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 (Madrid, Taichung, Curitiba)", "enl": "539.0", "res": "461.0"},
             {"name": "Phase 2 (Kinetic Challenge Op)", "enl": "49.0%", "res": "51.0% (x1.331)"},
@@ -97,7 +97,7 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Ctrl (2023)", "en": "Ctrl (2023)"},
         "url": "https://ingress.com/news/ctrl-rules",
         "status": "archived",
-        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_u_Xl8Yh_x6mK8_x=w1200",
+        "banner": "https://ingress.com/assets/images/anomalies/ctrl/ctrl-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 (Santa Cruz, Bandung, Rotenburg)", "enl": "509.0", "res": "467.0"},
             {"name": "Phase 2 (Oslo, Songpa, Charleston)", "enl": "507.0", "res": "460.0"},
@@ -110,7 +110,7 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Echo (2023)", "en": "Echo (2023)"},
         "url": "https://ingress.com/news/echo-rules",
         "status": "archived",
-        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_s_K=w1200",
+        "banner": "https://ingress.com/assets/images/anomalies/echo/echo-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 (Jacksonville, Baguio, Pietermaritzburg)", "enl": "666.0", "res": "249.0"},
             {"name": "Phase 2 (Brisbane, Brighton, Montevideo)", "enl": "585.0", "res": "335.0"},
@@ -123,7 +123,7 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Epiphany Dawn (2022)", "en": "Epiphany Dawn (2022)"},
         "url": "https://ingress.com/news/epiphany-dawn-rules",
         "status": "archived",
-        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_w_E=w1200",
+        "banner": "https://ingress.com/assets/images/anomalies/epiphany-dawn/epiphany-dawn-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 & Connected Cells", "enl": "412.0", "res": "488.0"},
             {"name": "Phase 2 (Los Angeles, Porto)", "enl": "380.0", "res": "420.0"},
@@ -136,7 +136,7 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Kythera (2022)", "en": "Kythera (2022)"},
         "url": "https://ingress.com/news/kythera3-results",
         "status": "archived",
-        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_q_K=w1200",
+        "banner": "https://ingress.com/assets/images/anomalies/kythera/kythera-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 (Final Report)", "enl": "620.0", "res": "580.0"},
             {"name": "Phase 2 (Final Report)", "enl": "122.0", "res": "138.0"},
@@ -146,7 +146,6 @@ HISTORICAL_SEASONS = {
         "res_total": 1479.5
     }
 }
-
 
 def clean_text(cell):
     return cell.get_text(strip=True).replace("\xa0", " ")
