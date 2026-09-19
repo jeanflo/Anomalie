@@ -6,7 +6,30 @@ from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 import markdown
 
-NEWS_URL = "https://ingress.com/news"
+# Liste explicite des saisons à afficher dans le Hub
+SEASONS = {
+    "2026-apollo": {
+        "title": {"fr": "Apollo (2026)", "en": "Apollo (2026)"},
+        "url": "https://ingress.com/news/2026-apollo-results"
+    },
+    "2026-orion": {
+        "title": {"fr": "Orion (2026)", "en": "Orion (2026)"},
+        "url": "https://ingress.com/news/2026-orion-results"
+    },
+    "2026-plusgamma": {
+        "title": {"fr": "+Gamma (2026)", "en": "+Gamma (2026)"},
+        "url": "https://ingress.com/news/2026-plusgamma-results"
+    },
+    "2025-plusbeta": {
+        "title": {"fr": "+Beta (2025)", "en": "+Beta (2025)"},
+        "url": "https://ingress.com/news/2025-plusbeta-results"
+    },
+    "2025-plusdelta": {
+        "title": {"fr": "+Delta (2025)", "en": "+Delta (2025)"},
+        "url": "https://ingress.com/news/2025-plusdelta-results"
+    }
+}
+
 OUTPUT_DIR = "public"
 
 TRANSLATIONS = {
@@ -75,53 +98,6 @@ def clean_text(cell):
     return cell.get_text(strip=True).replace("\xa0", " ")
 
 
-def discover_anomaly_seasons():
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
-    discovered = {}
-
-    try:
-        res = requests.get(NEWS_URL, headers=headers, timeout=15)
-        res.raise_for_status()
-        soup = BeautifulSoup(res.text, "html.parser")
-
-        # Recherche de tous les liens finissant par -results
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            match = re.search(r"/news/(\d{4}-[\w-]+-results)", href)
-            if match:
-                full_slug = match.group(1)
-                slug = full_slug.replace("-results", "")
-                
-                full_url = href if href.startswith("http") else f"https://ingress.com{href}"
-
-                # Découpage du titre lisible (ex: 2026-apollo -> Apollo (2026))
-                parts = slug.split("-")
-                year = parts[0] if parts[0].isdigit() else ""
-                raw_name = " ".join(parts[1:]) if len(parts) > 1 else slug
-                clean_name = raw_name.replace("plus", "+").title()
-                display_title = f"{clean_name} ({year})" if year else clean_name
-
-                if slug not in discovered:
-                    discovered[slug] = {
-                        "title": {
-                            "fr": display_title,
-                            "en": display_title
-                        },
-                        "url": full_url
-                    }
-    except Exception as e:
-        print(f"Erreur lors de la détection automatique des saisons : {e}")
-
-    # Filet de sécurité pour garantir la présence au moins d'Apollo 2026
-    if "2026-apollo" not in discovered:
-        discovered["2026-apollo"] = {
-            "title": {"fr": "Apollo (2026)", "en": "Apollo (2026)"},
-            "url": "https://ingress.com/news/2026-apollo-results"
-        }
-
-    return discovered
-
-
 def fetch_raw_data(url):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
     res = requests.get(url, headers=headers, timeout=15)
@@ -131,19 +107,19 @@ def fetch_raw_data(url):
     og_image = soup.find("meta", property="og:image")
     banner = og_image["content"] if og_image else "https://placehold.co/600x300/141c2e/FFF?text=Anomaly"
 
-    # Extraction des totaux et événements globaux
     season_overview_raw = []
     tables = soup.find_all("table")
-    for tbl in tables:
-        rows = tbl.find_all("tr")
-        if not rows:
-            continue
+
+    # On cible uniquement le premier tableau (la table récapitulative générale)
+    if tables:
+        summary_table = tables[0]
+        rows = summary_table.find_all("tr")
         for r in rows[1:]:
             cols = [clean_text(td) for td in r.find_all(["td", "th"])]
             if len(cols) >= 3:
                 name_clean = cols[0].strip().lower()
-                # On filtre les en-têtes et le total général
-                if name_clean not in ["event", "site", "total", "delta", "summary", ""] and not name_clean.startswith(">>"):
+                # On évite les totaux et en-têtes
+                if "total" not in name_clean and name_clean not in ["event", "site", "delta", ""]:
                     season_overview_raw.append({
                         "name": cols[0],
                         "enl": cols[1],
@@ -156,7 +132,7 @@ def fetch_raw_data(url):
     for sh in site_headers:
         site_name = sh.strip().replace("Site:", "").strip()
         parent_container = sh.find_parent(["div", "section"]) or soup
-        
+
         overview_match = next((item for item in season_overview_raw if item["name"].lower() == site_name.lower()), None)
         total_enl = overview_match["enl"] if overview_match else "??"
         total_res = overview_match["res"] if overview_match else "??"
@@ -286,34 +262,26 @@ def main():
     os.makedirs(os.path.join(OUTPUT_DIR, "en"), exist_ok=True)
     env = Environment(loader=FileSystemLoader("."))
 
-    # Horodatage ISO UTC (ex: 2026-09-19T11:32:00Z)
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # 1. Découverte automatique des saisons sur ingress.com/news
-    seasons = discover_anomaly_seasons()
-    print(f"Saisons identifiées ({len(seasons)}) : {list(seasons.keys())}")
-
-    # 2. Scraping des pages trouvées
     scraped_data = {}
-    for slug, info in seasons.items():
+    for slug, info in SEASONS.items():
         try:
-            print(f"Scraping de {slug}...")
+            print(f"Scraping de {slug} ({info['url']})...")
             scraped_data[slug] = fetch_raw_data(info["url"])
         except Exception as e:
             print(f"Erreur sur {slug} : {e}")
 
-    # 3. Génération des deux versions (FR / EN)
     for lang in ["fr", "en"]:
         t = TRANSLATIONS[lang]
         dest_dir = OUTPUT_DIR if lang == "fr" else os.path.join(OUTPUT_DIR, "en")
 
         hub_cards = []
-        for slug, info in seasons.items():
+        for slug, info in SEASONS.items():
             if slug in scraped_data:
                 card = process_season_for_lang(slug, info, scraped_data[slug], lang, t, env, now_iso)
                 hub_cards.append(card)
 
-        # Rendu du Hub index.html
         tmpl_hub = env.get_template("hub_template.html.j2")
         rendered_hub = tmpl_hub.render(
             seasons=hub_cards,
@@ -324,7 +292,7 @@ def main():
         with open(os.path.join(dest_dir, "index.html"), "w", encoding="utf-8") as f:
             f.write(rendered_hub)
 
-    print("Hub et synthèses mis à jour avec succès.")
+    print("Génération terminée avec succès.")
 
 
 if __name__ == "__main__":
