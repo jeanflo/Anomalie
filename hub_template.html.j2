@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ t.lang_code }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ingress XM Anomaly Hub</title>
+  <title>{{ t.hub_title }}</title>
   <style>
     :root {
       --bg: #0b0f19;
@@ -20,7 +20,27 @@
       background-color: var(--bg);
       color: var(--text);
       margin: 0;
-      padding: 2.5rem 1.5rem;
+      padding: 2rem 1.5rem;
+    }
+    .top-bar {
+      max-width: 1200px;
+      margin: 0 auto 1.5rem auto;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .lang-btn {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .lang-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--res-blue);
     }
     header {
       text-align: center;
@@ -104,9 +124,13 @@
 </head>
 <body>
 
+  <div class="top-bar">
+    <a href="{{ t.switch_url }}" class="lang-btn">{{ t.switch_label }}</a>
+  </div>
+
   <header>
-    <h1>XM Anomaly Hub</h1>
-    <p style="color: var(--text-muted);">Suivi centralisé et synthèses des saisons Ingress</p>
+    <h1>{{ t.hub_title }}</h1>
+    <p style="color: var(--text-muted);">{{ t.hub_subtitle }}</p>
   </header>
 
   <main class="grid">
@@ -115,13 +139,7 @@
       <img src="{{ s.banner }}" alt="{{ s.title }}" class="banner" onerror="this.src='https://placehold.co/600x300/141c2e/FFF?text=Anomaly'">
       <div class="content">
         <div>
-          {% if s.diff > 0 %}
-            <span class="badge badge-res">Avance RES (+{{ s.diff|round(1) }})</span>
-          {% elif s.diff < 0 %}
-            <span class="badge badge-enl">Avance ENL (+{{ (-s.diff)|round(1) }})</span>
-          {% else %}
-            <span class="badge">Égalité</span>
-          {% endif %}
+          <span class="badge {{ s.badge_class }}">{{ s.lead_badge }}</span>
           <h2 class="title">{{ s.title }}</h2>
         </div>
         <div class="scores">
@@ -134,7 +152,7 @@
   </main>
 
   <footer>
-    Dernière actualisation le {{ updated_at }}
+    {{ t.last_update }} {{ updated_at }}
   </footer>
 
 </body>
