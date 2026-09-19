@@ -1,19 +1,19 @@
-# 🌐 Saison d'Anomalies Ingress : {{ season_title }}
+# 🌐 {{ t.hub_title }} : {{ season_title }}
 
-> **Dernière mise à jour** : {{ updated_at }}  
-> **Statut global** : {% if diff > 0 %}🔵 **La Résistance mène** avec **{{ res_total }}** contre **{{ enl_total }}** pts (+{{ diff|round(1) }} pts){% elif diff < 0 %}🟢 **Les Éclairés mènent** avec **{{ enl_total }}** contre **{{ res_total }}** pts (+{{ (-diff)|round(1) }} pts){% else %}⚪ **Égalité parfaite** : {{ enl_total }} pts{% endif %}
+> **{{ t.last_update }}** : {{ updated_at }}  
+> **Statut** : {{ global_status }}
 
 ---
 
-## 📊 Tableau récapitulatif de la saison
+## 📊 {{ t.season_overview }}
 
 <table>
   <thead>
     <tr>
-      <th style="text-align:left;">Épreuve / Événement</th>
-      <th>🟢 Éclairés (ENL)</th>
-      <th>🔵 Résistance (RES)</th>
-      <th>Vainqueur</th>
+      <th style="text-align:left;">{{ t.col_event }}</th>
+      <th>{{ t.col_enl }}</th>
+      <th>{{ t.col_res }}</th>
+      <th>{{ t.col_winner }}</th>
     </tr>
   </thead>
   <tbody>
@@ -26,25 +26,25 @@
     </tr>
     {% endfor %}
     <tr style="background: rgba(255,255,255,0.05); font-weight: bold;">
-      <td style="text-align:left;">TOTAL PARTIEL</td>
+      <td style="text-align:left;">{{ t.total_partial }}</td>
       <td>{{ enl_total }} pts</td>
       <td>{{ res_total }} pts</td>
-      <td>{% if diff > 0 %}🔵 Avance RES (+{{ diff|round(1) }}){% elif diff < 0 %}🟢 Avance ENL (+{{ (-diff)|round(1) }}){% else %}Égalité{% endif %}</td>
+      <td>{% if diff > 0 %}🔵 {{ t.res_lead }} (+{{ diff|round(1) }}){% elif diff < 0 %}🟢 {{ t.enl_lead }} (+{{ (-diff)|round(1) }}){% else %}{{ t.tie }}{% endif %}</td>
     </tr>
   </tbody>
 </table>
 
 ---
 
-## 📍 Résultats par Ville
+## 📍 {{ t.city_results }}
 
 {% for site in sites %}
-### 🏙️ {{ site.name }} — {% if site.res_pts != '??' and site.enl_pts != '??' %}{% if site.res_pts|float > site.enl_pts|float %}🔵 Victoire RES ({{ site.res_pts }} vs {{ site.enl_pts }}){% else %}🟢 Victoire ENL ({{ site.enl_pts }} vs {{ site.res_pts }}){% endif %}{% else %}⏳ Scores en attente{% endif %}
+### 🏙️ {{ site.name }} — {% if site.res_pts != '??' and site.enl_pts != '??' %}{% if site.res_pts|float > site.enl_pts|float %}🔵 {{ t.res_win }} ({{ site.res_pts }} vs {{ site.enl_pts }}){% else %}🟢 {{ t.enl_win }} ({{ site.enl_pts }} vs {{ site.res_pts }}){% endif %}{% else %}{{ t.waiting }}{% endif %}
 
 <table>
   <thead>
     <tr>
-      <th style="text-align:left;">Catégorie</th>
+      <th style="text-align:left;">{{ t.col_category }}</th>
       <th>🟢 ENL</th>
       <th>🔵 RES</th>
     </tr>
@@ -71,7 +71,7 @@
       <td>{{ site.uniques.res }}</td>
     </tr>
     <tr style="background: rgba(255,255,255,0.05); font-weight: bold;">
-      <td style="text-align:left;">Total Site</td>
+      <td style="text-align:left;">{{ t.total_site }}</td>
       <td>{{ site.enl_pts }}</td>
       <td>{{ site.res_pts }}</td>
     </tr>
