@@ -2,9 +2,8 @@ name: Actualisation Anomalies Ingress
 
 on:
   schedule:
-    # Toutes les 30 minutes (ajustable selon les besoins)
     - cron: '*/30 * * * *'
-  workflow_dispatch: # Permet de forcer le lancement manuellement depuis GitHub
+  workflow_dispatch:
 
 permissions:
   contents: write

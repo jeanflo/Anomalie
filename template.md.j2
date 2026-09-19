@@ -1,0 +1,32 @@
+# 🌐 Saison d'Anomalies Ingress : {{ season_title }}
+
+> **Dernière mise à jour** : {{ updated_at }}  
+> **Statut global** : {% if diff > 0 %}🔵 **La Résistance mène** avec **{{ res_total }}** contre **{{ enl_total }}** pts (+{{ diff|round(1) }} pts){% elif diff < 0 %}🟢 **Les Éclairés mènent** avec **{{ enl_total }}** contre **{{ res_total }}** pts (+{{ (-diff)|round(1) }} pts){% else %}⚪ **Égalité parfaite** : {{ enl_total }} pts{% endif %}
+
+---
+
+## 📊 Tableau récapitulatif de la saison
+
+| Épreuve / Événement | 🟢 Éclairés (ENL) | 🔵 Résistance (RES) | Vainqueur |
+| :--- | :---: | :---: | :---: |
+{% for row in season_overview %}
+| **{{ row.name }}** | {{ row.enl }} | {{ row.res }} | {{ row.winner }} |
+{% endfor %}
+| **TOTAL PARTIEL** | **{{ enl_total }} pts** | **{{ res_total }} pts** | **{% if diff > 0 %}Avance RES (+{{ diff|round(1) }}){% elif diff < 0 %}Avance ENL (+{{ (-diff)|round(1) }}){% else %}Égalité{% endif %}** |
+
+---
+
+## 📍 Résultats par Ville
+
+{% for site in sites %}
+### 🏙️ {{ site.name }} — {% if site.res_pts != '??' and site.enl_pts != '??' %}{% if site.res_pts|float > site.enl_pts|float %}🔵 Victoire RES ({{ site.res_pts }} vs {{ site.enl_pts }}){% else %}🟢 Victoire ENL ({{ site.enl_pts }} vs {{ site.res_pts }}){% endif %}{% else %}⏳ Scores en attente{% endif %}
+
+| Catégorie | 🟢 ENL | 🔵 RES |
+| :--- | :---: | :---: |
+| **Special Ops** | {{ site.special_ops.enl }} | {{ site.special_ops.res }} |
+| **Shard Battle** | {{ site.shards.enl }} | {{ site.shards.res }} |
+| **Beacon Battle** | {{ site.beacons.enl }} | {{ site.beacons.res }} |
+| **Portails Uniques** | {{ site.uniques.enl }} | {{ site.uniques.res }} |
+| **Total Site** | **{{ site.enl_pts }}** | **{{ site.res_pts }}** |
+
+{% endfor %}
