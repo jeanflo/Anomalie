@@ -86,7 +86,36 @@ TRANSLATIONS = {
     }
 }
 
+# Archives avec totaux validés
 HISTORICAL_SEASONS = {
+    "2025-plusbeta": {
+        "title": {"fr": "+Beta (2025)", "en": "+Beta (2025)"},
+        "url": "https://ingress.com/news/2025-plusbeta-results",
+        "status": "archived",
+        "season_overview": [
+            {"name": "+Beta Global Op", "enl": "970.2", "res": "1029.8"},
+            {"name": "Site: Sendai", "enl": "163.0", "res": "137.0"},
+            {"name": "Site: San Diego", "enl": "141.0", "res": "159.0"},
+            {"name": "Site: Lyon", "enl": "146.0", "res": "154.0"},
+            {"name": "Site: Kaohsiung", "enl": "173.0", "res": "127.0"},
+            {"name": "+Beta Connected Cells", "enl": "967.0", "res": "613.0"}
+        ],
+        "enl_total": 2560.2,
+        "res_total": 2219.8
+    },
+    "2025-plusdelta": {
+        "title": {"fr": "+Delta (2025)", "en": "+Delta (2025)"},
+        "url": "https://ingress.com/news/2025-plusdelta-results",
+        "status": "archived",
+        "season_overview": [
+            {"name": "+Delta Global Op", "enl": "981.2", "res": "1018.8"},
+            {"name": "Site: Kobe", "enl": "146.0", "res": "154.0"},
+            {"name": "Site: Madrid", "enl": "138.0", "res": "162.0"},
+            {"name": "Site: Washington DC", "enl": "128.0", "res": "172.0"}
+        ],
+        "enl_total": 1393.2,
+        "res_total": 1306.8
+    },
     "2023-discoverie": {
         "title": {"fr": "Discoverie (2023)", "en": "Discoverie (2023)"},
         "url": "https://ingress.com/news/discoverie-rules",
@@ -220,9 +249,7 @@ def discover_anomaly_seasons(max_pages=3):
         "2026-cygnus": ("Cygnus (2026)", "https://ingress.com/news/2026-cygnus", "upcoming"),
         "2026-apollo": ("Apollo (2026)", "https://ingress.com/news/2026-apollo-results", "active"),
         "2026-orion": ("Orion (2026)", "https://ingress.com/news/2026-orion-results", "archived"),
-        "2026-plusgamma": ("+Gamma (2026)", "https://ingress.com/news/2026-plusgamma-results", "archived"),
-        "2025-plusbeta": ("+Beta (2025)", "https://ingress.com/news/2025-plusbeta-results", "archived"),
-        "2025-plusdelta": ("+Delta (2025)", "https://ingress.com/news/2025-plusdelta-results", "archived")
+        "2026-plusgamma": ("+Gamma (2026)", "https://ingress.com/news/2026-plusgamma-results", "archived")
     }
 
     for k_slug, (k_title, k_url, k_status) in modern_known.items():
@@ -234,8 +261,7 @@ def discover_anomaly_seasons(max_pages=3):
             }
 
     for h_slug, h_data in HISTORICAL_SEASONS.items():
-        if h_slug not in discovered:
-            discovered[h_slug] = h_data
+        discovered[h_slug] = h_data
 
     return discovered
 
@@ -281,14 +307,14 @@ def fetch_raw_data(url, status, slug):
     season_overview_raw = []
     has_pending_scores = False
 
-    # 1. Extraction des totaux de phases/villes et events annexes (Global Op, First Saturday)
+    # Extraction des blocs de résultats par date et events annexes
     for table in soup.find_all("table"):
         header_row = table.find("tr")
         if not header_row:
             continue
         headers_text = [clean_text(th).lower() for th in header_row.find_all(["th", "td"])]
-        
-        # S'il s'agit d'un tableau récapitulatif de sites ("site", "enlightened", "resistance")
+
+        # Tables récapitulatives de sites
         if len(headers_text) >= 3 and "site" in headers_text[0] and "enlightened" in headers_text[1] and "resistance" in headers_text[2]:
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
@@ -301,7 +327,8 @@ def fetch_raw_data(url, status, slug):
                     if enl_v in ["??", "TBD", "-"] or res_v in ["??", "TBD", "-"]:
                         enl_v = "??"
                         res_v = "??"
-                    
+                        has_pending_scores = True
+
                     norm_name = normalize_city_name(name_raw)
                     if not any(normalize_city_name(item["name"]).lower() == norm_name.lower() for item in season_overview_raw):
                         season_overview_raw.append({
@@ -310,7 +337,7 @@ def fetch_raw_data(url, status, slug):
                             "res": res_v
                         })
 
-        # S'il s'agit d'un tableau de Global Op ou First Saturday
+        # Tables Global Op et First Saturday
         elif len(headers_text) >= 3 and ("event" in headers_text[0] or "events" in headers_text[0]):
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
@@ -327,7 +354,7 @@ def fetch_raw_data(url, status, slug):
                                 "res": res_v
                             })
 
-    # 2. Parsing précis de chaque site individuel (<h3 id="site-...">Site: Nom</h3>)
+    # Parsing des sections par ville
     sites_raw = []
     site_headers = soup.find_all(re.compile(r"^h[2-4]$"), string=re.compile(r"Site:\s*([A-Za-zÀ-ÿ\s\-]+)", re.IGNORECASE))
 
@@ -348,19 +375,17 @@ def fetch_raw_data(url, status, slug):
             "uniques": {"enl": "??", "res": "??"}
         }
 
-        # Récupère le score depuis season_overview_raw si présent
         ov_match = next((item for item in season_overview_raw if normalize_city_name(item["name"]).lower() == norm_site.lower()), None)
         if ov_match:
             site_dict["enl_pts"] = ov_match["enl"]
             site_dict["res_pts"] = ov_match["res"]
 
-        # Collecte tous les sous-tableaux sous ce site jusqu'au prochain h2/h3
         curr = sh.next_sibling
         current_context = ""
         while curr:
             if hasattr(curr, "name") and curr.name in ["h2", "h3", "h1"]:
                 break
-            
+
             if hasattr(curr, "get_text"):
                 txt = curr.get_text().strip().lower()
                 if "special ops" in txt:
@@ -371,10 +396,7 @@ def fetch_raw_data(url, status, slug):
                     current_context = "beacon"
 
             if hasattr(curr, "name") and curr.name == "table":
-                table = curr
-                rows = table.find_all("tr")
-                
-                # Détection du type de table si pas détecté dans le paragraphe
+                rows = curr.find_all("tr")
                 t_head = rows[0].get_text().lower() if rows else ""
                 if "ops" in t_head or "stealth ops" in t_head:
                     current_context = "special_ops"
@@ -389,10 +411,8 @@ def fetch_raw_data(url, status, slug):
                     cols = [clean_text(td) for td in r.find_all(["td", "th"])]
                     if not cols:
                         continue
-                    
-                    # Détection de la ligne SEASON POINTS
+
                     if any("season points" in c.lower() for c in cols):
-                        # Pour Shards : colonnes 5 et 6 (ex: 37, 63 ou 50.9, 49.1)
                         if current_context == "shard" and len(cols) >= 7:
                             site_dict["shards"] = {"enl": cols[5], "res": cols[6]}
                         elif len(cols) >= 3:
@@ -404,14 +424,12 @@ def fetch_raw_data(url, status, slug):
                                 site_dict["beacons"] = {"enl": val_e, "res": val_r}
                             elif current_context == "unique":
                                 site_dict["uniques"] = {"enl": val_e, "res": val_r}
-                
-                # Réinitialise le contexte si unique
+
                 if current_context == "unique":
                     current_context = ""
 
             curr = curr.next_sibling
 
-        # Si le Total Site était à ??, on tente de le sommer depuis les 4 catégories
         if site_dict["enl_pts"] == "??" or site_dict["res_pts"] == "??":
             try:
                 tot_e = float(site_dict["special_ops"]["enl"]) + float(site_dict["shards"]["enl"]) + float(site_dict["beacons"]["enl"]) + float(site_dict["uniques"]["enl"])
@@ -422,19 +440,6 @@ def fetch_raw_data(url, status, slug):
                 has_pending_scores = True
 
         sites_raw.append(site_dict)
-
-    # Si season_overview_raw était vide (ex: pages avec une table globale unique comme +Delta)
-    if not season_overview_raw and tables:
-        for r in tables[0].find_all("tr")[1:]:
-            cols = [clean_text(td) for td in r.find_all(["td", "th"])]
-            if len(cols) >= 3:
-                name_clean = cols[0].strip().lower()
-                if "total" not in name_clean and name_clean not in ["site", "event", "delta", ""]:
-                    season_overview_raw.append({
-                        "name": cols[0],
-                        "enl": cols[1],
-                        "res": cols[2]
-                    })
 
     return {
         "banner": banner,
@@ -572,25 +577,25 @@ def main():
     seasons = discover_anomaly_seasons()
 
     scraped_data = {}
-    active_slug = None
-
     for slug, info in seasons.items():
         try:
             print(f"Scraping : {slug}...")
             data = fetch_raw_data(info["url"], info.get("status", "active"), slug)
             scraped_data[slug] = data
-
-            if info.get("status") != "upcoming" and active_slug is None and data.get("has_pending_scores"):
-                active_slug = slug
         except Exception as e:
             print(f"Erreur sur {slug} : {e}")
 
-    if active_slug is None:
-        for s, inf in seasons.items():
-            if inf.get("status") != "upcoming":
-                active_slug = s
-                break
+    # Détermination de la saison LIVE : STRICTEMENT la saison la plus récente de l'année en cours (2026) avec scores en attente
+    active_slug = None
+    for s_slug in ["2026-apollo", "2026-orion", "2026-plusgamma"]:
+        if s_slug in scraped_data and scraped_data[s_slug].get("has_pending_scores"):
+            active_slug = s_slug
+            break
 
+    if active_slug is None and "2026-apollo" in scraped_data:
+        active_slug = "2026-apollo"
+
+    # Ordre chronologique strict du plus récent au plus ancien
     SEASON_CHRONO = [
         "2026-cygnus",
         "2026-apollo",
@@ -649,6 +654,7 @@ def main():
             "res_pct": res_pct
         }
 
+        # Tri strict : UPCOMING (0) -> LIVE (1) -> ARCHIVED (2) ordonné chronologiquement
         def sort_key(card):
             state_prio = {"upcoming": 0, "live": 1, "archived": 2}.get(card["card_state"], 3)
             slug = card["slug"]
