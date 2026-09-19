@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} — Détail</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0b0f19;
+      color: #e2e8f0;
+      line-height: 1.6;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    a.back {
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      color: #00bbff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background: #141c2e;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px 14px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    th {
+      background: #1b263b;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    tr:last-child td { border-bottom: none; }
+    blockquote {
+      border-left: 4px solid #00bbff;
+      background: rgba(0, 187, 255, 0.08);
+      margin: 1rem 0;
+      padding: 0.8rem 1.2rem;
+      border-radius: 0 8px 8px 0;
+    }
+    hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 2.5rem 0; }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back">← Retour au Hub</a>
+  {{ content }}
+</body>
+</html>
