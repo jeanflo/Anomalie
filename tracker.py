@@ -81,67 +81,74 @@ def clean_text(cell):
     return cell.get_text(strip=True).replace("\xa0", " ")
 
 
-def discover_anomaly_seasons():
+def discover_anomaly_seasons(max_pages=15):
+    """Parcourt les pages d'actualités et filtre STRICTEMENT les saisons d'anomalies."""
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
     discovered = {}
 
-    try:
-        res = requests.get(NEWS_URL, headers=headers, timeout=15)
-        res.raise_for_status()
-        soup = BeautifulSoup(res.text, "html.parser")
+    for page in range(1, max_pages + 1):
+        page_url = f"{NEWS_URL}?page={page}" if page > 1 else NEWS_URL
+        print(f"Exploration news : page {page}...")
+        try:
+            res = requests.get(page_url, headers=headers, timeout=15)
+            if res.status_code != 200:
+                break
+            soup = BeautifulSoup(res.text, "html.parser")
+            links = soup.find_all("a", href=True)
+            if not links:
+                break
 
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            title_text = clean_text(a)
+            for a in links:
+                href = a["href"].strip()
+                title_text = clean_text(a)
 
-            # 1. Détection des pages de scores : "-results" ou titre contenant "Anomaly Season - Results"
-            is_results_link = bool(re.search(r"-results/?$", href)) or bool(re.search(r"anomaly\s+season\s*-\s*results", title_text, re.IGNORECASE))
-            if is_results_link:
-                slug_match = re.search(r"/news/(\d{4}-[\w-]+?)(?:-results)?/?$", href)
-                if slug_match:
-                    slug = slug_match.group(1)
-                    full_url = href if href.startswith("http") else f"https://ingress.com{href}"
-                    parts = slug.split("-")
-                    year = parts[0] if parts[0].isdigit() else ""
-                    raw_name = " ".join(parts[1:]) if len(parts) > 1 else slug
-                    clean_name = raw_name.replace("plus", "+").title()
-                    display_title = f"{clean_name} ({year})" if year else clean_name
+                # 1. Détection des scores : "-results" obligatoire
+                is_results = bool(re.search(r"-results/?$", href)) or bool(re.search(r"anomaly\s+season\s*-\s*results", title_text, re.IGNORECASE))
+                
+                # 2. Détection des annonces officielles : "Anomaly Season - Overview" strict
+                is_overview = bool(re.search(r"anomaly\s+season\s*-\s*overview", title_text, re.IGNORECASE)) or bool(re.search(r"-overview/?$", href))
 
+                if not (is_results or is_overview):
+                    continue
+
+                # Extraction propre de l'année et du nom de l'anomalie
+                match_slug = re.search(r"/news/(\d{4}-[\w-]+?)(?:-(?:results|overview))?/?$", href)
+                if not match_slug:
+                    continue
+
+                slug = match_slug.group(1).replace("-results", "").replace("-overview", "")
+                
+                # Exclure d'office les articles hors-séries ou sous-pages
+                if any(bad in slug.lower() for bad in ["anomalysites", "schedule", "rules", "guidelines"]):
+                    continue
+
+                full_url = href if href.startswith("http") else f"https://ingress.com{href}"
+                parts = slug.split("-")
+                year = parts[0] if parts[0].isdigit() else ""
+                raw_name = " ".join(parts[1:]) if len(parts) > 1 else slug
+                clean_name = raw_name.replace("plus", "+").title()
+                display_title = f"{clean_name} ({year})" if year else clean_name
+
+                # Priorité aux pages de résultats sur les annonces
+                if is_results:
                     discovered[slug] = {
                         "title": {"fr": display_title, "en": display_title},
                         "url": full_url,
                         "status": "active"
                     }
-                    continue
-
-            # 2. Détection des futures saisons : titre contenant "Anomaly Season - Overview" ou slug overview
-            is_overview_link = bool(re.search(r"anomaly\s+season\s*-\s*overview", title_text, re.IGNORECASE)) or bool(re.search(r"/news/\d{4}-[\w-]+(?:-overview)?/?$", href))
-            if is_overview_link:
-                slug_match = re.search(r"/news/(\d{4}-[\w-]+?)(?:-overview)?/?$", href)
-                if slug_match:
-                    slug = slug_match.group(1)
-                    # Si une page de scores existe déjà pour cette saison, on ne la rétrograde pas en upcoming
-                    if slug in discovered and discovered[slug]["status"] == "active":
-                        continue
-
-                    full_url = href if href.startswith("http") else f"https://ingress.com{href}"
-                    parts = slug.split("-")
-                    year = parts[0] if parts[0].isdigit() else ""
-                    raw_name = " ".join(parts[1:]) if len(parts) > 1 else slug
-                    clean_name = raw_name.replace("plus", "+").title()
-                    display_title = f"{clean_name} ({year})" if year else clean_name
-
+                elif is_overview and slug not in discovered:
                     discovered[slug] = {
                         "title": {"fr": display_title, "en": display_title},
                         "url": full_url,
                         "status": "upcoming"
                     }
 
-    except Exception as e:
-        print(f"Erreur de découverte sur {NEWS_URL} : {e}")
+        except Exception as e:
+            print(f"Erreur sur la page {page} : {e}")
+            break
 
-    # Fallbacks garantis
-    fallback_seasons = {
+    # Fallback propre au cas où Niantic archive au-delà de max_pages
+    known_seasons = {
         "2026-cygnus": ("Cygnus (2026)", "https://ingress.com/news/2026-cygnus", "upcoming"),
         "2026-apollo": ("Apollo (2026)", "https://ingress.com/news/2026-apollo-results", "active"),
         "2026-orion": ("Orion (2026)", "https://ingress.com/news/2026-orion-results", "archived"),
@@ -150,16 +157,15 @@ def discover_anomaly_seasons():
         "2025-plusdelta": ("+Delta (2025)", "https://ingress.com/news/2025-plusdelta-results", "archived")
     }
 
-    for f_slug, (f_title, f_url, f_status) in fallback_seasons.items():
-        if f_slug not in discovered:
-            discovered[f_slug] = {
-                "title": {"fr": f_title, "en": f_title},
-                "url": f_url,
-                "status": f_status
+    for k_slug, (k_title, k_url, k_status) in known_seasons.items():
+        if k_slug not in discovered:
+            discovered[k_slug] = {
+                "title": {"fr": k_title, "en": k_title},
+                "url": k_url,
+                "status": k_status
             }
 
     return discovered
-
 
 def fetch_raw_data(url, status):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
@@ -394,8 +400,9 @@ def main():
                 hub_cards.append(card)
 
         # Ordre antéchronologique : UPCOMING (0) -> LIVE (1) -> ARCHIVED (2)
+        # UPCOMING (0) -> LIVE (1) -> ARCHIVED (2)
         order = {"upcoming": 0, "live": 1, "archived": 2}
-        hub_cards.sort(key=lambda c: order.get(c["card_state"], 3))
+        hub_cards.sort(key=lambda c: (order.get(c["card_state"], 3), -int(c["slug"][:4]) if c["slug"][:4].isdigit() else 0, c["slug"]))
 
         tmpl_hub = env.get_template("hub_template.html.j2")
         rendered_hub = tmpl_hub.render(
