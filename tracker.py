@@ -27,7 +27,7 @@ TRANSLATIONS = {
         "enl_win": "Victoire ENL",
         "badge_live": "🔴 EN DIRECT",
         "badge_upcoming": "🟡 PROCHAINEMENT",
-        "scores_pending": "Scores à venir (Oct - Déc)",
+        "scores_pending": "Scores à venir",
         "global_res_lead": "🔵 <strong>La Résistance mène</strong> avec <strong>{res}</strong> contre <strong>{enl}</strong> pts (+{diff} pts)",
         "global_enl_lead": "🟢 <strong>Les Éclairés mènent</strong> avec <strong>{enl}</strong> contre <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Égalité parfaite</strong> : {enl} pts",
@@ -59,7 +59,7 @@ TRANSLATIONS = {
         "enl_win": "ENL Victory",
         "badge_live": "🔴 LIVE",
         "badge_upcoming": "🟡 UPCOMING",
-        "scores_pending": "Scores coming soon (Oct - Dec)",
+        "scores_pending": "Scores coming soon",
         "global_res_lead": "🔵 <strong>The Resistance leads</strong> with <strong>{res}</strong> against <strong>{enl}</strong> pts (+{diff} pts)",
         "global_enl_lead": "🟢 <strong>The Enlightened lead</strong> with <strong>{enl}</strong> against <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Perfect tie</strong>: {enl} pts",
@@ -90,52 +90,57 @@ def discover_anomaly_seasons():
         res.raise_for_status()
         soup = BeautifulSoup(res.text, "html.parser")
 
-        # Parcours de tous les liens de la page d'actualités
         for a in soup.find_all("a", href=True):
             href = a["href"]
-            link_text = a.get_text(strip=True)
+            title_text = clean_text(a)
 
-            # 1. Pages de résultats (-results)
-            match_results = re.search(r"/news/(\d{4}-[\w-]+-results)", href)
-            if match_results:
-                slug = match_results.group(1).replace("-results", "")
-                full_url = href if href.startswith("http") else f"https://ingress.com{href}"
-                parts = slug.split("-")
-                year = parts[0] if parts[0].isdigit() else ""
-                raw_name = " ".join(parts[1:]) if len(parts) > 1 else slug
-                clean_name = raw_name.replace("plus", "+").title()
-                display_title = f"{clean_name} ({year})" if year else clean_name
+            # 1. Détection des pages de scores : "-results" ou titre contenant "Anomaly Season - Results"
+            is_results_link = bool(re.search(r"-results/?$", href)) or bool(re.search(r"anomaly\s+season\s*-\s*results", title_text, re.IGNORECASE))
+            if is_results_link:
+                slug_match = re.search(r"/news/(\d{4}-[\w-]+?)(?:-results)?/?$", href)
+                if slug_match:
+                    slug = slug_match.group(1)
+                    full_url = href if href.startswith("http") else f"https://ingress.com{href}"
+                    parts = slug.split("-")
+                    year = parts[0] if parts[0].isdigit() else ""
+                    raw_name = " ".join(parts[1:]) if len(parts) > 1 else slug
+                    clean_name = raw_name.replace("plus", "+").title()
+                    display_title = f"{clean_name} ({year})" if year else clean_name
 
-                discovered[slug] = {
-                    "title": {"fr": display_title, "en": display_title},
-                    "url": full_url,
-                    "status": "active"
-                }
-                continue
+                    discovered[slug] = {
+                        "title": {"fr": display_title, "en": display_title},
+                        "url": full_url,
+                        "status": "active"
+                    }
+                    continue
 
-            # 2. Pages d'annonces de saisons / Overview (ex: /news/2026-cygnus ou texte contenant 'Anomaly Season')
-            match_season = re.search(r"/news/(\d{4}-([a-zA-Z0-9]+))(?:/|$)", href)
-            if match_season:
-                slug = match_season.group(1)
-                season_word = match_season.group(2).lower()
-
-                # On vérifie si c'est bien une saison (soit via le texte du lien, soit via un mot-clé du slug)
-                is_anomaly_link = ("anomaly season" in link_text.lower()) or (season_word in ["cygnus", "apollo", "orion", "gamma", "beta", "delta"])
-                if is_anomaly_link and slug not in discovered:
-                    year = slug.split("-")[0]
-                    clean_name = season_word.capitalize()
-                    display_title = f"{clean_name} ({year})"
+            # 2. Détection des futures saisons : titre contenant "Anomaly Season - Overview" ou slug overview
+            is_overview_link = bool(re.search(r"anomaly\s+season\s*-\s*overview", title_text, re.IGNORECASE)) or bool(re.search(r"/news/\d{4}-[\w-]+(?:-overview)?/?$", href))
+            if is_overview_link:
+                slug_match = re.search(r"/news/(\d{4}-[\w-]+?)(?:-overview)?/?$", href)
+                if slug_match:
+                    slug = slug_match.group(1)
+                    # Si une page de scores existe déjà pour cette saison, on ne la rétrograde pas en upcoming
+                    if slug in discovered and discovered[slug]["status"] == "active":
+                        continue
 
                     full_url = href if href.startswith("http") else f"https://ingress.com{href}"
+                    parts = slug.split("-")
+                    year = parts[0] if parts[0].isdigit() else ""
+                    raw_name = " ".join(parts[1:]) if len(parts) > 1 else slug
+                    clean_name = raw_name.replace("plus", "+").title()
+                    display_title = f"{clean_name} ({year})" if year else clean_name
+
                     discovered[slug] = {
                         "title": {"fr": display_title, "en": display_title},
                         "url": full_url,
                         "status": "upcoming"
                     }
-    except Exception as e:
-        print(f"Erreur lors de la détection sur {NEWS_URL} : {e}")
 
-    # Fallbacks connus pour l'historique
+    except Exception as e:
+        print(f"Erreur de découverte sur {NEWS_URL} : {e}")
+
+    # Fallbacks garantis
     fallback_seasons = {
         "2026-cygnus": ("Cygnus (2026)", "https://ingress.com/news/2026-cygnus", "upcoming"),
         "2026-apollo": ("Apollo (2026)", "https://ingress.com/news/2026-apollo-results", "active"),
@@ -165,9 +170,6 @@ def fetch_raw_data(url, status):
     og_image = soup.find("meta", property="og:image")
     banner = og_image["content"] if og_image else "https://placehold.co/600x300/141c2e/FFF?text=Anomaly"
 
-    season_overview_raw = []
-    has_pending_scores = False
-
     if status == "upcoming":
         return {
             "banner": banner,
@@ -176,6 +178,9 @@ def fetch_raw_data(url, status):
             "has_pending_scores": False,
             "is_upcoming": True
         }
+
+    season_overview_raw = []
+    has_pending_scores = False
 
     tables = soup.find_all("table")
     if tables:
@@ -240,7 +245,6 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
     target_dir = OUTPUT_DIR if lang == "fr" else os.path.join(OUTPUT_DIR, "en")
     os.makedirs(target_dir, exist_ok=True)
 
-    # Pour une saison à venir, la carte redirige vers la page d'annonce officielle
     if card_state == "upcoming":
         return {
             "title": title,
@@ -365,7 +369,6 @@ def main():
         except Exception as e:
             print(f"Erreur sur {slug} : {e}")
 
-    # Si aucune saison avec scores en attente n'est trouvée, la première saison active devient celle de référence
     if active_slug is None:
         for s, inf in seasons.items():
             if inf.get("status") != "upcoming":
@@ -390,8 +393,8 @@ def main():
                 card = process_season_for_lang(slug, info, data, card_state, lang, t, env, now_iso)
                 hub_cards.append(card)
 
-        # Ordre dans la grille : LIVE en 1er, UPCOMING en 2e, ARCHIVED ensuite
-        order = {"live": 0, "upcoming": 1, "archived": 2}
+        # Ordre antéchronologique : UPCOMING (0) -> LIVE (1) -> ARCHIVED (2)
+        order = {"upcoming": 0, "live": 1, "archived": 2}
         hub_cards.sort(key=lambda c: order.get(c["card_state"], 3))
 
         tmpl_hub = env.get_template("hub_template.html.j2")
