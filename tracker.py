@@ -8,41 +8,93 @@ import markdown
 
 SEASONS = {
     "2026-apollo": {
-        "title": "Apollo (2026)",
+        "title": {
+            "fr": "Apollo (2026)",
+            "en": "Apollo (2026)"
+        },
         "url": "https://ingress.com/news/2026-apollo-results"
     }
 }
 
 OUTPUT_DIR = "public"
 
+TRANSLATIONS = {
+    "fr": {
+        "lang_code": "fr",
+        "switch_lang": "en",
+        "switch_label": "🇬🇧 English",
+        "switch_url": "en/",
+        "hub_title": "XM Anomaly Hub",
+        "hub_subtitle": "Suivi centralisé et synthèses des saisons d'anomalies Ingress",
+        "back": "← Retour au Hub",
+        "last_update": "Dernière actualisation le",
+        "waiting": "⏳ En attente",
+        "tie": "Égalité",
+        "res_lead": "Avance RES",
+        "enl_lead": "Avance ENL",
+        "res_win": "Victoire RES",
+        "enl_win": "Victoire ENL",
+        "global_res_lead": "🔵 <strong>La Résistance mène</strong> avec <strong>{res}</strong> contre <strong>{enl}</strong> pts (+{diff} pts)",
+        "global_enl_lead": "🟢 <strong>Les Éclairés mènent</strong> avec <strong>{enl}</strong> contre <strong>{res}</strong> pts (+{diff} pts)",
+        "global_tie": "⚪ <strong>Égalité parfaite</strong> : {enl} pts",
+        "season_overview": "Tableau récapitulatif de la saison",
+        "city_results": "Résultats par Ville",
+        "col_event": "Épreuve / Événement",
+        "col_enl": "🟢 Éclairés (ENL)",
+        "col_res": "🔵 Résistance (RES)",
+        "col_winner": "Vainqueur",
+        "col_category": "Catégorie",
+        "total_partial": "TOTAL PARTIEL",
+        "total_site": "Total Site",
+        "date_format": "%d/%m/%Y à %H:%M:%S"
+    },
+    "en": {
+        "lang_code": "en",
+        "switch_lang": "fr",
+        "switch_label": "🇫🇷 Français",
+        "switch_url": "../",
+        "hub_title": "XM Anomaly Hub",
+        "hub_subtitle": "Centralized tracking and summaries of Ingress anomaly seasons",
+        "back": "← Back to Hub",
+        "last_update": "Last updated on",
+        "waiting": "⏳ Pending",
+        "tie": "Tie",
+        "res_lead": "RES Lead",
+        "enl_lead": "ENL Lead",
+        "res_win": "RES Victory",
+        "enl_win": "ENL Victory",
+        "global_res_lead": "🔵 <strong>The Resistance leads</strong> with <strong>{res}</strong> against <strong>{enl}</strong> pts (+{diff} pts)",
+        "global_enl_lead": "🟢 <strong>The Enlightened lead</strong> with <strong>{enl}</strong> against <strong>{res}</strong> pts (+{diff} pts)",
+        "global_tie": "⚪ <strong>Perfect tie</strong>: {enl} pts",
+        "season_overview": "Season Overview",
+        "city_results": "City Results",
+        "col_event": "Event / Phase",
+        "col_enl": "🟢 Enlightened (ENL)",
+        "col_res": "🔵 Resistance (RES)",
+        "col_winner": "Winner",
+        "col_category": "Category",
+        "total_partial": "PARTIAL TOTAL",
+        "total_site": "Site Total",
+        "date_format": "%Y-%m-%d at %H:%M:%S"
+    }
+}
+
 
 def clean_text(cell):
     return cell.get_text(strip=True).replace("\xa0", " ")
 
 
-def process_season(slug, info, env):
-    url = info["url"]
-    title = info["title"]
+def fetch_raw_data(url):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
-
-    try:
-        res = requests.get(url, headers=headers, timeout=15)
-        res.raise_for_status()
-    except Exception as e:
-        print(f"Erreur sur {slug} : {e}")
-        return None
-
+    res = requests.get(url, headers=headers, timeout=15)
+    res.raise_for_status()
     soup = BeautifulSoup(res.text, "html.parser")
 
-    # 1. Extraction de la bannière officielle
     og_image = soup.find("meta", property="og:image")
     banner = og_image["content"] if og_image else "https://placehold.co/600x300/141c2e/FFF?text=Anomaly"
 
-    # 2. Parsing des scores
-    season_overview = []
-    enl_sum = 0.0
-    res_sum = 0.0
-
+    # Extraction des totaux
+    season_overview_raw = []
     tables = soup.find_all("table")
     for tbl in tables:
         rows = tbl.find_all("tr")
@@ -51,41 +103,22 @@ def process_season(slug, info, env):
         for r in rows[1:]:
             cols = [clean_text(td) for td in r.find_all(["td", "th"])]
             if len(cols) >= 3 and any(k in cols[0].lower() for k in ["global op", "first saturday", "singapore", "paris", "seoul", "bogotá", "helsinki", "denver"]):
-                name = cols[0]
-                enl_val = cols[1]
-                res_val = cols[2]
-
-                winner = "—"
-                if enl_val != "??" and res_val != "??":
-                    try:
-                        e_float = float(enl_val.replace(",", "").replace(" ", ""))
-                        r_float = float(res_val.replace(",", "").replace(" ", ""))
-                        enl_sum += e_float
-                        res_sum += r_float
-                        winner = "🟢 ENL" if e_float > r_float else ("🔵 RES" if r_float > e_float else "⚪ Égalité")
-                    except ValueError:
-                        pass
-                else:
-                    winner = "⏳ En attente"
-
-                season_overview.append({
-                    "name": name,
-                    "enl": enl_val,
-                    "res": res_val,
-                    "winner": winner
+                season_overview_raw.append({
+                    "name": cols[0],
+                    "enl": cols[1],
+                    "res": cols[2]
                 })
 
-    # 3. Détail par site
-    sites_data = []
+    # Extraction par site
+    sites_raw = []
     site_headers = soup.find_all(string=re.compile(r"Site:\s*(\w+)", re.IGNORECASE))
     for sh in site_headers:
         site_name = sh.strip().replace("Site:", "").strip()
         parent_container = sh.find_parent(["div", "section"]) or soup
         
-        # Récupère le score global du site depuis la vue d'ensemble si présent
-        site_overview = next((item for item in season_overview if item["name"].lower() == site_name.lower()), None)
-        total_enl = site_overview["enl"] if site_overview else "??"
-        total_res = site_overview["res"] if site_overview else "??"
+        overview_match = next((item for item in season_overview_raw if item["name"].lower() == site_name.lower()), None)
+        total_enl = overview_match["enl"] if overview_match else "??"
+        total_res = overview_match["res"] if overview_match else "??"
 
         site_dict = {
             "name": site_name,
@@ -102,70 +135,149 @@ def process_season(slug, info, env):
             if not c:
                 continue
             txt = c[0].lower()
-            # Sous-scores
             if "stealth ops" in txt and len(c) >= 3:
                 site_dict["special_ops"] = {"enl": c[1], "res": c[2]}
             elif "anomaly uniques" in txt and len(c) >= 3:
                 site_dict["uniques"] = {"enl": c[1], "res": c[2]}
 
-        sites_data.append(site_dict)
+        sites_raw.append(site_dict)
 
-    # 4. Rendu Markdown puis compilation HTML
+    return {
+        "banner": banner,
+        "season_overview": season_overview_raw,
+        "sites": sites_raw
+    }
+
+
+def process_season_for_lang(slug, info, raw_data, lang, t, env):
+    title = info["title"][lang]
+    target_dir = OUTPUT_DIR if lang == "fr" else os.path.join(OUTPUT_DIR, "en")
+    os.makedirs(target_dir, exist_ok=True)
+
+    enl_sum = 0.0
+    res_sum = 0.0
+    season_overview = []
+
+    for row in raw_data["season_overview"]:
+        enl_val = row["enl"]
+        res_val = row["res"]
+        winner = "—"
+
+        if enl_val != "??" and res_val != "??":
+            try:
+                e = float(enl_val.replace(",", "").replace(" ", ""))
+                r = float(res_val.replace(",", "").replace(" ", ""))
+                enl_sum += e
+                res_sum += r
+                winner = "🟢 ENL" if e > r else ("🔵 RES" if r > e else t["tie"])
+            except ValueError:
+                pass
+        else:
+            winner = t["waiting"]
+
+        season_overview.append({
+            "name": row["name"],
+            "enl": enl_val,
+            "res": res_val,
+            "winner": winner
+        })
+
+    enl_sum = round(enl_sum, 1)
+    res_sum = round(res_sum, 1)
+    diff = round(res_sum - enl_sum, 1)
+
+    if diff > 0:
+        global_status = t["global_res_lead"].format(res=res_sum, enl=enl_sum, diff=diff)
+        lead_badge = f"{t['res_lead']} (+{diff})"
+        badge_class = "badge-res"
+    elif diff < 0:
+        global_status = t["global_enl_lead"].format(res=res_sum, enl=enl_sum, diff=round(-diff, 1))
+        lead_badge = f"{t['enl_lead']} (+{round(-diff, 1)})"
+        badge_class = "badge-enl"
+    else:
+        global_status = t["global_tie"].format(enl=enl_sum)
+        lead_badge = t["tie"]
+        badge_class = ""
+
+    # Rendu Markdown
     tmpl_md = env.get_template("template.md.j2")
     rendered_md = tmpl_md.render(
+        t=t,
         season_title=title,
-        updated_at=datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-        enl_total=round(enl_sum, 1),
-        res_total=round(res_sum, 1),
-        diff=round(res_sum - enl_sum, 1),
+        updated_at=datetime.now().strftime(t["date_format"]),
+        global_status=global_status,
+        enl_total=enl_sum,
+        res_total=res_sum,
+        diff=diff,
         season_overview=season_overview,
-        sites=sites_data
+        sites=raw_data["sites"]
     )
 
-    # Écriture du .md
-    with open(os.path.join(OUTPUT_DIR, f"{slug}.md"), "w", encoding="utf-8") as f:
+    with open(os.path.join(target_dir, f"{slug}.md"), "w", encoding="utf-8") as f:
         f.write(rendered_md)
 
-    # Écriture du .html pour le web
+    # Conversion en HTML de détail
     html_content = markdown.markdown(rendered_md, extensions=["tables"])
     tmpl_detail = env.get_template("detail_template.html.j2")
-    rendered_html = tmpl_detail.render(title=title, content=html_content)
+    rendered_html = tmpl_detail.render(
+        title=title,
+        content=html_content,
+        t=t,
+        slug=slug
+    )
 
-    with open(os.path.join(OUTPUT_DIR, f"{slug}.html"), "w", encoding="utf-8") as f:
+    with open(os.path.join(target_dir, f"{slug}.html"), "w", encoding="utf-8") as f:
         f.write(rendered_html)
 
     return {
         "title": title,
         "slug": slug,
-        "banner": banner,
+        "banner": raw_data["banner"],
         "html_file": f"{slug}.html",
-        "enl": round(enl_sum, 1),
-        "res": round(res_sum, 1),
-        "diff": round(res_sum - enl_sum, 1)
+        "enl": enl_sum,
+        "res": res_sum,
+        "diff": diff,
+        "lead_badge": lead_badge,
+        "badge_class": badge_class
     }
 
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(os.path.join(OUTPUT_DIR, "en"), exist_ok=True)
     env = Environment(loader=FileSystemLoader("."))
 
-    hub_cards = []
+    # 1. Scraping unique pour chaque saison
+    scraped_data = {}
     for slug, info in SEASONS.items():
-        data = process_season(slug, info, env)
-        if data:
-            hub_cards.append(data)
+        try:
+            scraped_data[slug] = fetch_raw_data(info["url"])
+        except Exception as e:
+            print(f"Erreur sur {slug} : {e}")
 
-    # Rendu du Hub index.html
-    tmpl_hub = env.get_template("hub_template.html.j2")
-    rendered_hub = tmpl_hub.render(
-        seasons=hub_cards,
-        updated_at=datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    )
+    # 2. Génération bilingue
+    for lang in ["fr", "en"]:
+        t = TRANSLATIONS[lang]
+        dest_dir = OUTPUT_DIR if lang == "fr" else os.path.join(OUTPUT_DIR, "en")
 
-    with open(os.path.join(OUTPUT_DIR, "index.html"), "w", encoding="utf-8") as f:
-        f.write(rendered_hub)
+        hub_cards = []
+        for slug, info in SEASONS.items():
+            if slug in scraped_data:
+                card = process_season_for_lang(slug, info, scraped_data[slug], lang, t, env)
+                hub_cards.append(card)
 
-    print(f"Hub généré avec succès dans {OUTPUT_DIR}/")
+        # Rendu du Hub index.html
+        tmpl_hub = env.get_template("hub_template.html.j2")
+        rendered_hub = tmpl_hub.render(
+            seasons=hub_cards,
+            t=t,
+            updated_at=datetime.now().strftime(t["date_format"])
+        )
+
+        with open(os.path.join(dest_dir, "index.html"), "w", encoding="utf-8") as f:
+            f.write(rendered_hub)
+
+    print("Génération bilingue (FR et EN) terminée avec succès dans public/")
 
 
 if __name__ == "__main__":
