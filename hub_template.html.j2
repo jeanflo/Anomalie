@@ -1,333 +1,316 @@
 <!DOCTYPE html>
 <html lang="{{ t.lang_code }}">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ t.hub_title }}</title>
+  <title>{{ t.hub_title }} — Ingress Anomaly Tracking</title>
+  <link rel="stylesheet" href="/assets/style.css">
   <style>
     :root {
-      --bg: #0b0f19;
-      --card-bg: #141c2e;
-      --border: rgba(255, 255, 255, 0.08);
-      --res-blue: #00bbff;
-      --enl-green: #00e676;
-      --warn-yellow: #ffb703;
-      --text: #f1f5f9;
+      --bg-dark: #0f141c;
+      --card-bg: #141c28;
+      --card-border: #223247;
+      --text-main: #e2e8f0;
       --text-muted: #94a3b8;
+      --enl-color: #00ea62;
+      --res-color: #00a2ff;
+      --accent: #2dd4bf;
     }
-    * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
-      padding: 2rem 1.5rem;
+      padding: 0;
     }
-    .top-bar {
-      max-width: 1200px;
-      margin: 0 auto 1.5rem auto;
-      display: flex;
-      justify-content: flex-end;
+    .header {
+      padding: 2.5rem 1.5rem 1.5rem;
+      text-align: center;
+      border-bottom: 1px solid var(--card-border);
+      background: linear-gradient(180deg, #162235 0%, var(--bg-dark) 100%);
     }
-    .lang-btn {
-      color: var(--text);
+    .header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2.2rem;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+    .header p {
+      color: var(--text-muted);
+      margin: 0 0 1rem;
+    }
+    .update-meta {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .update-meta time, .update-meta strong {
+      color: var(--text-main);
+    }
+    .lang-switcher {
+      display: inline-block;
+      margin-top: 0.75rem;
+      padding: 0.35rem 0.8rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text-main);
       text-decoration: none;
       font-size: 0.85rem;
-      border: 1px solid var(--border);
-      padding: 6px 14px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.04);
-      transition: background 0.2s ease, border-color 0.2s ease;
+      transition: all 0.2s ease;
     }
-    .lang-btn:hover {
+    .lang-switcher:hover {
       background: rgba(255, 255, 255, 0.1);
-      border-color: var(--res-blue);
+      border-color: var(--accent);
     }
-    header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    header h1 {
-      font-size: 2.2rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin: 0 0 0.5rem 0;
-    }
-    .standings-banner {
-      max-width: 760px;
-      margin: 0 auto 3rem auto;
-      background: linear-gradient(180deg, #141c2e 0%, #0e1524 100%);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1.2rem 1.6rem;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    }
-    .standings-title {
-      text-align: center;
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 0.9rem;
-    }
-    .standings-counts {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.8rem;
-    }
-    .faction-stat {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-    }
-    .stat-num {
-      font-size: 1.8rem;
-      font-weight: 800;
-      line-height: 1;
-    }
-    .stat-label {
-      font-size: 0.88rem;
-      font-weight: 600;
-    }
-    .stat-enl { color: var(--enl-green); }
-    .stat-res { color: var(--res-blue); }
-    .stat-tie {
-      color: var(--text-muted);
-      font-size: 0.8rem;
-    }
-    .ratio-bar {
-      height: 8px;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 999px;
-      overflow: hidden;
-      display: flex;
-      gap: 2px;
-    }
-    .bar-segment-enl {
-      height: 100%;
-      background: var(--enl-green);
-      box-shadow: 0 0 10px rgba(0, 230, 118, 0.5);
-      transition: width 0.6s ease;
-    }
-    .bar-segment-res {
-      height: 100%;
-      background: var(--res-blue);
-      box-shadow: 0 0 10px rgba(0, 187, 255, 0.5);
-      transition: width 0.6s ease;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 2rem;
+    .container {
       max-width: 1200px;
       margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    .standings-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+      text-align: center;
+    }
+    .standings-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .standings-bar {
+      height: 14px;
+      border-radius: 7px;
+      background: #334155;
+      display: flex;
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+    .bar-enl {
+      background: var(--enl-color);
+      height: 100%;
+    }
+    .bar-res {
+      background: var(--res-color);
+      height: 100%;
+    }
+    .standings-stats {
+      display: flex;
+      justify-content: space-around;
+      font-size: 0.95rem;
+    }
+    .stat-enl { color: var(--enl-color); font-weight: bold; }
+    .stat-res { color: var(--res-color); font-weight: bold; }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
     }
     .card {
       background: var(--card-bg);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
       overflow: hidden;
-      border: 1px solid var(--border);
-      text-decoration: none;
-      color: inherit;
       display: flex;
       flex-direction: column;
       position: relative;
-      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      text-decoration: none;
+      color: inherit;
     }
     .card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+      border-color: #38bdf8;
     }
     .card-live {
-      border: 2px solid var(--res-blue);
-      box-shadow: 0 0 22px rgba(0, 187, 255, 0.25);
-    }
-    .card-live:hover {
-      box-shadow: 0 0 32px rgba(0, 187, 255, 0.45);
+      border: 2px solid var(--res-color);
+      box-shadow: 0 0 15px rgba(0, 162, 255, 0.2);
     }
     .card-upcoming {
-      border: 1px dashed var(--warn-yellow);
-      box-shadow: 0 0 16px rgba(255, 183, 3, 0.15);
+      border: 1px dashed #eab308;
     }
-    .card-upcoming:hover {
-      box-shadow: 0 0 24px rgba(255, 183, 3, 0.35);
-    }
-    .banner-badge {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: rgba(11, 15, 25, 0.88);
-      backdrop-filter: blur(4px);
-      font-size: 0.72rem;
-      font-weight: 800;
-      letter-spacing: 0.8px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      z-index: 2;
-    }
-    .badge-live-tag {
-      color: #ff3344;
-      border: 1px solid rgba(255, 51, 68, 0.6);
-    }
-    .badge-upcoming-tag {
-      color: var(--warn-yellow);
-      border: 1px solid rgba(255, 183, 3, 0.6);
-    }
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
-      background-color: #ff3344;
-      border-radius: 50%;
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-      0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 51, 68, 0.7); }
-      70% { transform: scale(1.1); box-shadow: 0 0 0 7px rgba(255, 51, 68, 0); }
-      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 51, 68, 0); }
-    }
-    .banner-wrapper {
+    .card-banner {
+      width: 100%;
+      height: 150px;
+      background-size: cover;
+      background-position: center;
+      background-color: #1e293b;
       position: relative;
-      width: 100%;
-      height: 180px;
-      background-color: #000;
     }
-    .banner {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .badge-status {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
     }
-    .content {
+    .badge-live {
+      background: #ef4444;
+      color: #fff;
+    }
+    .badge-upcoming {
+      background: #eab308;
+      color: #000;
+    }
+    .card-body {
       padding: 1.25rem;
       display: flex;
       flex-direction: column;
-      flex: 1;
-      justify-content: space-between;
+      flex-grow: 1;
     }
-    .badge {
-      display: inline-block;
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 0.25rem 0.6rem;
-      border-radius: 999px;
-      margin-bottom: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .badge-res { background: rgba(0, 187, 255, 0.15); color: var(--res-blue); border: 1px solid var(--res-blue); }
-    .badge-enl { background: rgba(0, 230, 118, 0.15); color: var(--enl-green); border: 1px solid var(--enl-green); }
-    .badge-upcoming { background: rgba(255, 183, 3, 0.15); color: var(--warn-yellow); border: 1px solid var(--warn-yellow); }
-    .title {
+    .card-title {
       font-size: 1.25rem;
-      margin: 0 0 1.2rem 0;
+      margin: 0 0 0.75rem;
+      font-weight: 600;
     }
-    .scores {
+    .card-lead {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      width: fit-content;
+    }
+    .badge-res { background: rgba(0, 162, 255, 0.15); color: var(--res-color); }
+    .badge-enl { background: rgba(0, 234, 98, 0.15); color: var(--enl-color); }
+    .card-scores {
       display: flex;
       justify-content: space-between;
-      background: rgba(0, 0, 0, 0.35);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
+      margin-top: auto;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-weight: 600;
       font-size: 0.95rem;
-    }
-    .score-enl { color: var(--enl-green); font-weight: bold; }
-    .score-res { color: var(--res-blue); font-weight: bold; }
-    footer {
-      text-align: center;
-      margin-top: 4rem;
-      color: var(--text-muted);
-      font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
-
-  <div class="top-bar">
-    <a href="{{ t.switch_url }}" class="lang-btn">{{ t.switch_label }}</a>
-  </div>
-
-  <header>
+  <header class="header">
     <h1>{{ t.hub_title }}</h1>
-    <p style="color: var(--text-muted);">{{ t.hub_subtitle }}</p>
+    <p>{{ t.hub_subtitle }}</p>
+    <div class="update-meta">
+      <span>{{ t.last_update }} : <time class="local-date" datetime="{{ updated_at }}">{{ updated_at }}</time></span>
+      <span class="cron-next"> — Prochaine actualisation : <strong id="next-refresh">Calcul...</strong></span>
+    </div>
+    <div>
+      <a class="lang-switcher" href="{{ t.switch_url }}">{{ t.switch_label }}</a>
+    </div>
   </header>
 
-  <section class="standings-banner">
-    <div class="standings-title">{{ t.global_victories }}</div>
-    <div class="standings-counts">
-      <div class="faction-stat stat-enl">
-        <span class="stat-num">{{ standings.enl_wins }}</span>
-        <span class="stat-label">{{ t.victories_enl }} ({{ standings.enl_pct }}%)</span>
+  <main class="container">
+    <section class="standings-panel">
+      <div class="standings-title">{{ t.global_victories }}</div>
+      <div class="standings-bar">
+        <div class="bar-enl" style="width: {{ standings.enl_pct }}%;"></div>
+        <div class="bar-res" style="width: {{ standings.res_pct }}%;"></div>
       </div>
-      {% if standings.ties > 0 %}
-      <div class="stat-tie">{{ standings.ties }} {{ t.ties }}</div>
-      {% endif %}
-      <div class="faction-stat stat-res">
-        <span class="stat-label">({{ standings.res_pct }}%) {{ t.victories_res }}</span>
-        <span class="stat-num">{{ standings.res_wins }}</span>
+      <div class="standings-stats">
+        <div class="stat-enl">{{ t.victories_enl }} : {{ standings.enl_wins }} ({{ standings.enl_pct }}%)</div>
+        <div class="stat-ties">{{ t.ties }} : {{ standings.ties }}</div>
+        <div class="stat-res">{{ t.victories_res }} : {{ standings.res_wins }} ({{ standings.res_pct }}%)</div>
       </div>
-    </div>
-    <div class="ratio-bar">
-      <div class="bar-segment-enl" style="width: {{ standings.enl_pct }}%;"></div>
-      <div class="bar-segment-res" style="width: {{ standings.res_pct }}%;"></div>
-    </div>
-  </section>
+    </section>
 
-  <main class="grid">
-    {% for s in seasons %}
-    <a href="{{ s.html_file }}" class="card card-{{ s.card_state }}">
-      <div class="banner-wrapper">
-        {% if s.card_state == 'live' %}
-        <div class="banner-badge badge-live-tag">
-          <div class="pulse-dot"></div>
-          <span>{{ t.badge_live }}</span>
-        </div>
-        {% elif s.card_state == 'upcoming' %}
-        <div class="banner-badge badge-upcoming-tag">
-          <span>{{ t.badge_upcoming }}</span>
-        </div>
-        {% endif %}
-        <img src="{{ s.banner }}" alt="{{ s.title }}" class="banner" onerror="this.src='https://placehold.co/600x300/141c2e/FFF?text=Anomaly'">
-      </div>
-      
-      <div class="content">
-        <div>
-          <span class="badge {{ s.badge_class }}">{{ s.lead_badge }}</span>
-          <h2 class="title">{{ s.title }}</h2>
-        </div>
-        <div class="scores">
-          {% if s.card_state == 'upcoming' %}
-          <div style="width: 100%; text-align: center; color: var(--text-muted);">{{ t.scores_pending }}</div>
-          {% else %}
-          <div>🟢 ENL : <span class="score-enl">{{ s.enl }}</span></div>
-          <div>🔵 RES : <span class="score-res">{{ s.res }}</span></div>
+    <div class="cards-grid">
+      {% for season in seasons %}
+      <a class="card {% if season.card_state == 'live' %}card-live{% elif season.card_state == 'upcoming' %}card-upcoming{% endif %}" href="{{ season.html_file }}">
+        <div class="card-banner" style="background-image: url('{{ season.banner }}');">
+          {% if season.card_state == 'live' %}
+            <span class="badge-status badge-live">{{ t.badge_live }}</span>
+          {% elif season.card_state == 'upcoming' %}
+            <span class="badge-status badge-upcoming">{{ t.badge_upcoming }}</span>
           {% endif %}
         </div>
-      </div>
-    </a>
-    {% endfor %}
+        <div class="card-body">
+          <h2 class="card-title">{{ season.title }}</h2>
+          {% if season.lead_badge %}
+            <div class="card-lead {{ season.badge_class }}">{{ season.lead_badge }}</div>
+          {% endif %}
+          <div class="card-scores">
+            <span class="stat-enl">ENL : {{ season.enl }}</span>
+            <span class="stat-res">RES : {{ season.res }}</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
   </main>
 
-  <footer>
-    {{ t.last_update }} <time id="last-update" datetime="{{ updated_at }}">{{ updated_at }}</time>
-  </footer>
-
   <script>
-    (function() {
-      const timeElem = document.getElementById('last-update');
-      if (timeElem && timeElem.dateTime) {
-        const date = new Date(timeElem.dateTime);
-        timeElem.textContent = date.toLocaleString('{{ t.lang_code }}', {
-          dateStyle: 'short',
-          timeStyle: 'medium'
+    // Formatage des dates UTC générées vers l'heure locale
+    document.querySelectorAll('.local-date').forEach(el => {
+      const d = new Date(el.getAttribute('datetime'));
+      if (!isNaN(d.getTime())) {
+        el.textContent = d.toLocaleString([], {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
         });
       }
-    })();
-  </script>
+    });
 
+    // Calcul de la prochaine exécution du cron job
+    function getNextCronExecution() {
+      const now = new Date();
+      let candidates = [];
+
+      for (let dayOffset = 0; dayOffset <= 8; dayOffset++) {
+        const d = new Date(now.getTime());
+        d.setUTCDate(d.getUTCDate() + dayOffset);
+        const dayOfWeek = d.getUTCDay(); // 0 = Dimanche, 1 = Lundi, 6 = Samedi
+
+        // Règle 1 : Lundi à 12:00 UTC
+        if (dayOfWeek === 1) {
+          const run = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0));
+          if (run > now) candidates.push(run);
+        }
+
+        // Règle 2 : Samedi de 12:00 UTC à 23:30 UTC (toutes les 30 min)
+        if (dayOfWeek === 6) {
+          for (let h = 12; h <= 23; h++) {
+            for (let m of [0, 30]) {
+              const run = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m, 0));
+              if (run > now) candidates.push(run);
+            }
+          }
+        }
+
+        // Règle 3 : Dimanche de 00:00 UTC à 12:00 UTC (toutes les 30 min)
+        if (dayOfWeek === 0) {
+          for (let h = 0; h <= 12; h++) {
+            for (let m of [0, 30]) {
+              if (h === 12 && m > 0) continue;
+              const run = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m, 0));
+              if (run > now) candidates.push(run);
+            }
+          }
+        }
+      }
+
+      candidates.sort((a, b) => a - b);
+      return candidates[0];
+    }
+
+    const nextRun = getNextCronExecution();
+    const refreshEl = document.getElementById('next-refresh');
+    if (refreshEl && nextRun) {
+      refreshEl.textContent = nextRun.toLocaleString([], {
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  </script>
 </body>
 </html>
