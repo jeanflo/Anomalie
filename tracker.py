@@ -156,6 +156,12 @@ def clean_text(cell):
     return cell.get_text(strip=True).replace("\xa0", " ")
 
 
+def normalize_city_name(name):
+    """Supprime les préfixes parasites pour éviter les doublons."""
+    clean = re.sub(r"^(?:anomaly\s*[-–—:]\s*|site\s*:\s*)", "", name, flags=re.IGNORECASE)
+    return clean.strip()
+
+
 def discover_anomaly_seasons(max_pages=3):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
     discovered = {}
@@ -253,7 +259,6 @@ def fetch_raw_data(url, status, slug):
         print(f"Erreur de chargement pour {slug} ({url}) : {e}")
         soup = BeautifulSoup("", "html.parser")
 
-    # 1. Archives historiques
     if slug in HISTORICAL_SEASONS:
         hist = HISTORICAL_SEASONS[slug]
         return {
@@ -265,7 +270,6 @@ def fetch_raw_data(url, status, slug):
             "preset_totals": (hist["enl_total"], hist["res_total"])
         }
 
-    # 2. Saison à venir
     if status == "upcoming":
         return {
             "banner": banner,
@@ -275,40 +279,38 @@ def fetch_raw_data(url, status, slug):
             "is_upcoming": True
         }
 
-    # 3. Extraction prioritaire : parcourir chaque bloc de site individuel
+    # 1. Extraction des données par site
     sites_raw = []
     has_pending_scores = False
-    
-    # Détection de toutes les occurrences de sites (ex: "Site: Paris", "Site: Singapore", etc.)
+
     site_pattern = re.compile(r"Site:\s*([A-Za-zÀ-ÿ\s\-]+)", re.IGNORECASE)
     site_matches = soup.find_all(string=site_pattern)
+    seen_sites = set()
 
     for sm in site_matches:
         match = site_pattern.search(sm)
         if not match:
             continue
-        site_name = match.group(1).strip()
-        if not site_name or site_name.lower() in ["tbd", "overview", "rules"]:
+        raw_city = match.group(1).strip()
+        site_name = normalize_city_name(raw_city)
+        if not site_name or site_name.lower() in ["tbd", "overview", "rules"] or site_name.lower() in seen_sites:
             continue
+        seen_sites.add(site_name.lower())
 
-        # Localisation du conteneur parent et de la table associée à cette ville
-        container = sm.find_parent(["h1", "h2", "h3", "h4", "p", "div"])
-        site_table = None
-        curr = container
+        # Parcourt toutes les tables appartenant à cette ville
+        site_tables = []
+        curr = sm.find_parent(["h1", "h2", "h3", "h4", "p", "div"])
         while curr:
             curr = curr.find_next_sibling()
             if not curr:
                 break
-            # Arrêt si on atteint la ville suivante
             if curr.name in ["h1", "h2", "h3", "h4"] and "site:" in curr.get_text().lower():
                 break
             if curr.name == "table":
-                site_table = curr
-                break
-            nested = curr.find("table")
-            if nested:
-                site_table = nested
-                break
+                site_tables.append(curr)
+            for t in curr.find_all("table"):
+                if t not in site_tables:
+                    site_tables.append(t)
 
         site_dict = {
             "name": site_name,
@@ -320,8 +322,9 @@ def fetch_raw_data(url, status, slug):
             "uniques": {"enl": "??", "res": "??"}
         }
 
-        if site_table:
-            for row in site_table.find_all("tr"):
+        # Parsing de chaque tableau trouvé dans la section de cette ville
+        for table in site_tables:
+            for row in table.find_all("tr"):
                 cols = [clean_text(td) for td in row.find_all(["td", "th"])]
                 if len(cols) < 3:
                     continue
@@ -329,14 +332,13 @@ def fetch_raw_data(url, status, slug):
                 val_enl = cols[1].strip()
                 val_res = cols[2].strip()
 
-                # Ignorer les lignes d'en-tête
                 if "enlightened" in val_enl.lower() or "resistance" in val_res.lower():
                     continue
 
-                if any(k in row_label for k in ["total site", "site total", "total"]):
+                if any(k in row_label for k in ["total score", "site total", "total site", "total"]):
                     site_dict["enl_pts"] = val_enl
                     site_dict["res_pts"] = val_res
-                elif any(k in row_label for k in ["stealth", "urban", "special ops", "operation"]):
+                elif any(k in row_label for k in ["stealth", "urban", "special ops"]):
                     site_dict["special_ops"] = {"enl": val_enl, "res": val_res}
                 elif "shard" in row_label:
                     site_dict["shards"] = {"enl": val_enl, "res": val_res}
@@ -345,13 +347,30 @@ def fetch_raw_data(url, status, slug):
                 elif "unique" in row_label:
                     site_dict["uniques"] = {"enl": val_enl, "res": val_res}
 
+        # Calcul automatique du Total Site si non fourni dans une ligne 'Total'
+        if site_dict["enl_pts"] == "??" or site_dict["res_pts"] == "??":
+            pts_enl = 0.0
+            pts_res = 0.0
+            found_components = False
+            for cat in ["beacons", "shards", "uniques", "special_ops"]:
+                try:
+                    e = float(site_dict[cat]["enl"].replace(",", ""))
+                    r = float(site_dict[cat]["res"].replace(",", ""))
+                    pts_enl += e
+                    pts_res += r
+                    found_components = True
+                except ValueError:
+                    pass
+            if found_components and (pts_enl > 0 or pts_res > 0):
+                site_dict["enl_pts"] = str(round(pts_enl, 1))
+                site_dict["res_pts"] = str(round(pts_res, 1))
+
         if site_dict["enl_pts"] == "??" or site_dict["res_pts"] == "??":
             has_pending_scores = True
 
         sites_raw.append(site_dict)
 
-    # 4. Construction du tableau récapitulatif de la saison
-    # On commence par lire le premier tableau de la page s'il existe
+    # 2. Lecture du tableau récapitulatif officiel
     season_overview_raw = []
     tables = soup.find_all("table")
 
@@ -363,7 +382,7 @@ def fetch_raw_data(url, status, slug):
                 name_raw = cols[0].strip()
                 name_clean = name_raw.lower()
 
-                ignored = ["event", "site", "delta", "total", "season points", "points", "winner", "phase"]
+                ignored = ["event", "site", "delta", "total", "season points", "points", "winner", "phase", "wave number"]
                 if not name_clean or any(ig == name_clean for ig in ignored) or name_clean.startswith(">>"):
                     continue
 
@@ -380,17 +399,30 @@ def fetch_raw_data(url, status, slug):
                     "res": res_val
                 })
 
-    # Synchronisation : s'assurer que toutes les villes trouvées dans la page apparaissent dans la synthèse
+    # 3. Synchronisation sans doublons
+    final_overview = []
+    for item in season_overview_raw:
+        norm_name = normalize_city_name(item["name"])
+        matched_site = next((s for s in sites_raw if normalize_city_name(s["name"]).lower() == norm_name.lower()), None)
+        if matched_site and item["enl"] == "??" and matched_site["enl_pts"] != "??":
+            item["enl"] = matched_site["enl_pts"]
+            item["res"] = matched_site["res_pts"]
+        final_overview.append(item)
+
     for site in sites_raw:
-        match_item = next((item for item in season_overview_raw if item["name"].lower() == site["name"].lower()), None)
-        if match_item:
-            # Si le tableau de synthèse affichait ?? alors que le tableau de la ville a les vrais chiffres, on met à jour
-            if match_item["enl"] == "??" and site["enl_pts"] != "??":
-                match_item["enl"] = site["enl_pts"]
-                match_item["res"] = site["res_pts"]
-        else:
-            # La ville a été publiée mais oubliée du tableau récapitulatif de Niantic : on l'ajoute directement
-            season_overview_raw.append({
+        norm_site = normalize_city_name(site["name"])
+        already_in = any(normalize_city_name(it["name"]).lower() == norm_site.lower() for it in final_overview)
+        if not already_in:
+            final_overview.append({
+                "name": site["name"],
+                "enl": site["enl_pts"],
+                "res": site["res_pts"]
+            })
+
+    # Si le tableau de synthèse n'avait rien détecté du tout, on prend directement les sites
+    if not final_overview:
+        for site in sites_raw:
+            final_overview.append({
                 "name": site["name"],
                 "enl": site["enl_pts"],
                 "res": site["res_pts"]
@@ -398,7 +430,7 @@ def fetch_raw_data(url, status, slug):
 
     return {
         "banner": banner,
-        "season_overview": season_overview_raw,
+        "season_overview": final_overview,
         "sites": sites_raw,
         "has_pending_scores": has_pending_scores,
         "is_upcoming": False
@@ -457,8 +489,8 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
 
             season_overview.append({
                 "name": row["name"],
-                "enl": enl_val,
-                "res": res_val,
+                "enl": row["enl"],
+                "res": row["res"],
                 "winner": winner
             })
 
