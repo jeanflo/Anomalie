@@ -2,10 +2,14 @@ name: Déploiement Anomaly Hub
 
 on:
   schedule:
-    # Lundi à vendredi : 1 fois par jour à 12:00 UTC
-    - cron: '0 12 * * 1-5'
-    # Samedi et dimanche : toutes les 30 minutes
-    - cron: '*/30 * * * 0,6'
+    # 1. Tous les lundis à 12:00 UTC
+    - cron: '0 12 * * 1'
+
+    # 2. Samedi : de 12:00 UTC à 23:30 UTC (toutes les 30 minutes)
+    - cron: '*/30 12-23 * * 6'
+
+    # 3. Dimanche : de 00:00 UTC à 12:00 UTC (toutes les 30 minutes)
+    - cron: '0,30 0-11,12 * * 0'
   workflow_dispatch:
 
 permissions:
