@@ -204,7 +204,7 @@ def process_season_for_lang(slug, info, raw_data, lang, t, env):
     rendered_md = tmpl_md.render(
         t=t,
         season_title=title,
-        updated_at=datetime.now().strftime(t["date_format"]),
+        updated_at=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         global_status=global_status,
         enl_total=enl_sum,
         res_total=res_sum,
@@ -271,7 +271,7 @@ def main():
         rendered_hub = tmpl_hub.render(
             seasons=hub_cards,
             t=t,
-            updated_at=datetime.now().strftime(t["date_format"])
+            updated_at=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         )
 
         with open(os.path.join(dest_dir, "index.html"), "w", encoding="utf-8") as f:
