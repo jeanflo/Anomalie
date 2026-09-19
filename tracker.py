@@ -275,29 +275,62 @@ def fetch_raw_data(url, status, slug):
 
     season_overview_raw = []
     has_pending_scores = False
-
     tables = soup.find_all("table")
+
     if tables:
         summary_table = tables[0]
-        rows = summary_table.find_all("tr")
-        for r in rows[1:]:
+        for r in summary_table.find_all("tr"):
             cols = [clean_text(td) for td in r.find_all(["td", "th"])]
             if len(cols) >= 3:
-                name_clean = cols[0].strip().lower()
-                if "total" not in name_clean and name_clean not in ["event", "site", "delta", ""]:
-                    if cols[1] == "??" or cols[2] == "??":
-                        has_pending_scores = True
-                    season_overview_raw.append({
-                        "name": cols[0],
-                        "enl": cols[1],
-                        "res": cols[2]
-                    })
+                name_raw = cols[0].strip()
+                name_clean = name_raw.lower()
+
+                ignored = ["event", "site", "delta", "total", "season points", "points", "winner", "phase"]
+                if not name_clean or any(ig == name_clean for ig in ignored) or name_clean.startswith(">>"):
+                    continue
+
+                enl_val = cols[1].strip()
+                res_val = cols[2].strip()
+
+                if enl_val in ["??", "TBD", "-", ""] or res_val in ["??", "TBD", "-", ""]:
+                    has_pending_scores = True
+                    enl_val = "??"
+                    res_val = "??"
+
+                season_overview_raw.append({
+                    "name": name_raw,
+                    "enl": enl_val,
+                    "res": res_val
+                })
 
     sites_raw = []
-    site_headers = soup.find_all(string=re.compile(r"Site:\s*(\w+)", re.IGNORECASE))
-    for sh in site_headers:
-        site_name = sh.strip().replace("Site:", "").strip()
-        parent_container = sh.find_parent(["div", "section"]) or soup
+    site_pattern = re.compile(r"Site:\s*([A-Za-zÀ-ÿ\s\-]+)", re.IGNORECASE)
+    site_matches = soup.find_all(string=site_pattern)
+
+    for sm in site_matches:
+        match = site_pattern.search(sm)
+        if not match:
+            continue
+        site_name = match.group(1).strip()
+        if not site_name or site_name.lower() in ["tbd", "overview"]:
+            continue
+
+        container = sm.find_parent(["h1", "h2", "h3", "h4", "p", "div"])
+        site_table = None
+        curr = container
+        while curr:
+            curr = curr.find_next_sibling()
+            if not curr:
+                break
+            if curr.name in ["h1", "h2", "h3"] and "site:" in curr.get_text().lower():
+                break
+            if curr.name == "table":
+                site_table = curr
+                break
+            nested = curr.find("table")
+            if nested:
+                site_table = nested
+                break
 
         overview_match = next((item for item in season_overview_raw if item["name"].lower() == site_name.lower()), None)
         total_enl = overview_match["enl"] if overview_match else "??"
@@ -313,15 +346,26 @@ def fetch_raw_data(url, status, slug):
             "uniques": {"enl": "??", "res": "??"}
         }
 
-        for row in parent_container.find_all("tr"):
-            c = [clean_text(td) for td in row.find_all(["td", "th"])]
-            if not c:
-                continue
-            txt = c[0].lower()
-            if "stealth ops" in txt and len(c) >= 3:
-                site_dict["special_ops"] = {"enl": c[1], "res": c[2]}
-            elif "anomaly uniques" in txt and len(c) >= 3:
-                site_dict["uniques"] = {"enl": c[1], "res": c[2]}
+        if site_table:
+            for row in site_table.find_all("tr"):
+                c = [clean_text(td) for td in row.find_all(["td", "th"])]
+                if len(c) < 3:
+                    continue
+                row_label = c[0].lower()
+                val_enl = c[1]
+                val_res = c[2]
+
+                if "enlightened" in val_enl.lower() or "resistance" in val_res.lower():
+                    continue
+
+                if any(k in row_label for k in ["stealth", "urban", "special ops", "operation"]):
+                    site_dict["special_ops"] = {"enl": val_enl, "res": val_res}
+                elif "shard" in row_label:
+                    site_dict["shards"] = {"enl": val_enl, "res": val_res}
+                elif "beacon" in row_label:
+                    site_dict["beacons"] = {"enl": val_enl, "res": val_res}
+                elif "unique" in row_label:
+                    site_dict["uniques"] = {"enl": val_enl, "res": val_res}
 
         sites_raw.append(site_dict)
 
