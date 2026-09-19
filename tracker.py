@@ -6,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 import markdown
+import time
 
 NEWS_URL = "https://ingress.com/news"
 OUTPUT_DIR = "public"
@@ -192,7 +193,7 @@ def normalize_city_name(name):
 
 
 def parse_with_gemini(html_content):
-    """Analyse structurée de la page de scores via Gemini 2.5 Flash."""
+    """Analyse structurée avec gestion de charge (retry + fallback de modèles)."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return None
@@ -232,19 +233,32 @@ Consignes strictes :
 - Dans "sites", ne mets que les villes majeures, pas les doublons.
 """
 
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[prompt, html_content],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.1
-            )
-        )
-        return json.loads(response.text)
+        # Modèles testés en cascade si surcharge 503
+        models_to_try = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+
+        for model_name in models_to_try:
+            for attempt in range(2):  # 2 essais par modèle
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=[prompt, html_content],
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            temperature=0.1
+                        )
+                    )
+                    return json.loads(response.text)
+                except Exception as err:
+                    if "503" in str(err) or "UNAVAILABLE" in str(err):
+                        print(f"Modèle {model_name} saturé (tentative {attempt + 1}/2). Pause de 4s...")
+                        time.sleep(4)
+                    else:
+                        raise err
+
+        return None
     except Exception as e:
         print(f"Extraction IA non disponible (repli sur analyse classique) : {e}")
         return None
-
 
 def discover_anomaly_seasons(max_pages=3):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
