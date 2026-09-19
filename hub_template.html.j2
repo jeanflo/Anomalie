@@ -152,8 +152,21 @@
   </main>
 
   <footer>
-    {{ t.last_update }} {{ updated_at }}
+    {{ t.last_update }} <time id="last-update" datetime="{{ updated_at }}">{{ updated_at }}</time>
   </footer>
+
+  <script>
+    (function() {
+      const timeElem = document.getElementById('last-update');
+      if (timeElem && timeElem.dateTime) {
+        const date = new Date(timeElem.dateTime);
+        timeElem.textContent = date.toLocaleString('{{ t.lang_code }}', {
+          dateStyle: 'short',
+          timeStyle: 'medium'
+        });
+      }
+    })();
+  </script>
 
 </body>
 </html>
