@@ -32,13 +32,13 @@ TRANSLATIONS = {
         "global_enl_lead": "🟢 <strong>Les Éclairés mènent</strong> avec <strong>{enl}</strong> contre <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Égalité parfaite</strong> : {enl} pts",
         "season_overview": "Tableau récapitulatif de la saison",
-        "city_results": "Résultats par Ville",
+        "city_results": "Résultats par Ville / Phase",
         "col_event": "Épreuve / Événement",
         "col_enl": "🟢 Éclairés (ENL)",
         "col_res": "🔵 Résistance (RES)",
         "col_winner": "Vainqueur",
         "col_category": "Catégorie",
-        "total_partial": "TOTAL PARTIEL",
+        "total_partial": "TOTAL FINAL",
         "total_site": "Total Site",
         "date_format": "%d/%m/%Y à %H:%M:%S"
     },
@@ -64,15 +64,86 @@ TRANSLATIONS = {
         "global_enl_lead": "🟢 <strong>The Enlightened lead</strong> with <strong>{enl}</strong> against <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Perfect tie</strong>: {enl} pts",
         "season_overview": "Season Overview",
-        "city_results": "City Results",
+        "city_results": "Results by City / Phase",
         "col_event": "Event / Phase",
         "col_enl": "🟢 Enlightened (ENL)",
         "col_res": "🔵 Resistance (RES)",
         "col_winner": "Winner",
         "col_category": "Category",
-        "total_partial": "PARTIAL TOTAL",
+        "total_partial": "FINAL TOTAL",
         "total_site": "Site Total",
         "date_format": "%Y-%m-%d at %H:%M:%S"
+    }
+}
+
+# Archives 2022-2023 aux formats spécifiques (Phases / Multipliers / Final Reports)
+HISTORICAL_SEASONS = {
+    "2023-discoverie": {
+        "title": {"fr": "Discoverie (2023)", "en": "Discoverie (2023)"},
+        "url": "https://ingress.com/news/discoverie-rules",
+        "status": "archived",
+        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_vr9RrqVzYnI52Yj8x15k0j4k-2tXhH8n4V6k-2w-w=w1200",
+        "season_overview": [
+            {"name": "Phase 1 (Madrid, Taichung, Curitiba)", "enl": "539.0", "res": "461.0"},
+            {"name": "Phase 2 (Kinetic Challenge Op)", "enl": "49.0%", "res": "51.0% (x1.331)"},
+            {"name": "Phase 3 (Bangkok, Palermo, Atlanta)", "enl": "549.0", "res": "600.0"},
+            {"name": "Phase 4 (Reclaimer Challenge Op)", "enl": "49.9%", "res": "50.1% (x1.331)"},
+            {"name": "Phase 5 (Honolulu, İzmir, Colombo)", "enl": "616.0", "res": "511.0"}
+        ],
+        "enl_total": 1704.0,
+        "res_total": 1572.0
+    },
+    "2023-ctrl": {
+        "title": {"fr": "Ctrl (2023)", "en": "Ctrl (2023)"},
+        "url": "https://ingress.com/news/ctrl-rules",
+        "status": "archived",
+        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_u_Xl8Yh_x6mK8_x=w1200",
+        "season_overview": [
+            {"name": "Phase 1 (Santa Cruz, Bandung, Rotenburg)", "enl": "509.0", "res": "467.0"},
+            {"name": "Phase 2 (Oslo, Songpa, Charleston)", "enl": "507.0", "res": "460.0"},
+            {"name": "Phase 3 (Kobe, Reims, Tacoma)", "enl": "656.0", "res": "334.0"}
+        ],
+        "enl_total": 1672.0,
+        "res_total": 1261.0
+    },
+    "2023-echo": {
+        "title": {"fr": "Echo (2023)", "en": "Echo (2023)"},
+        "url": "https://ingress.com/news/echo-rules",
+        "status": "archived",
+        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_s_K=w1200",
+        "season_overview": [
+            {"name": "Phase 1 (Jacksonville, Baguio, Pietermaritzburg)", "enl": "666.0", "res": "249.0"},
+            {"name": "Phase 2 (Brisbane, Brighton, Montevideo)", "enl": "585.0", "res": "335.0"},
+            {"name": "Phase 3 (Athens, Ueda, Winnipeg)", "enl": "585.0", "res": "310.0"}
+        ],
+        "enl_total": 1836.0,
+        "res_total": 894.0
+    },
+    "2022-epiphany-dawn": {
+        "title": {"fr": "Epiphany Dawn (2022)", "en": "Epiphany Dawn (2022)"},
+        "url": "https://ingress.com/news/epiphany-dawn-rules",
+        "status": "archived",
+        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_w_E=w1200",
+        "season_overview": [
+            {"name": "Phase 1 & Connected Cells", "enl": "412.0", "res": "488.0"},
+            {"name": "Phase 2 (Los Angeles, Porto)", "enl": "380.0", "res": "420.0"},
+            {"name": "Phase 3 (Yokohama)", "enl": "512.0", "res": "688.0"}
+        ],
+        "enl_total": 1304.0,
+        "res_total": 1596.0
+    },
+    "2022-kythera": {
+        "title": {"fr": "Kythera (2022)", "en": "Kythera (2022)"},
+        "url": "https://ingress.com/news/kythera3-results",
+        "status": "archived",
+        "banner": "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_q_K=w1200",
+        "season_overview": [
+            {"name": "Phase 1 (Final Report)", "enl": "620.0", "res": "580.0"},
+            {"name": "Phase 2 (Final Report)", "enl": "122.0", "res": "138.0"},
+            {"name": "Phase 3 (Final Report)", "enl": "920.5", "res": "761.5"}
+        ],
+        "enl_total": 1662.5,
+        "res_total": 1479.5
     }
 }
 
@@ -81,44 +152,34 @@ def clean_text(cell):
     return cell.get_text(strip=True).replace("\xa0", " ")
 
 
-def discover_anomaly_seasons(max_pages=15):
-    """Parcourt les pages d'actualités et filtre STRICTEMENT les saisons d'anomalies."""
+def discover_anomaly_seasons(max_pages=3):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
     discovered = {}
 
     for page in range(1, max_pages + 1):
         page_url = f"{NEWS_URL}?page={page}" if page > 1 else NEWS_URL
-        print(f"Exploration news : page {page}...")
         try:
             res = requests.get(page_url, headers=headers, timeout=15)
             if res.status_code != 200:
                 break
             soup = BeautifulSoup(res.text, "html.parser")
             links = soup.find_all("a", href=True)
-            if not links:
-                break
 
             for a in links:
                 href = a["href"].strip()
                 title_text = clean_text(a)
 
-                # 1. Détection des scores : "-results" obligatoire
                 is_results = bool(re.search(r"-results/?$", href)) or bool(re.search(r"anomaly\s+season\s*-\s*results", title_text, re.IGNORECASE))
-                
-                # 2. Détection des annonces officielles : "Anomaly Season - Overview" strict
                 is_overview = bool(re.search(r"anomaly\s+season\s*-\s*overview", title_text, re.IGNORECASE)) or bool(re.search(r"-overview/?$", href))
 
                 if not (is_results or is_overview):
                     continue
 
-                # Extraction propre de l'année et du nom de l'anomalie
                 match_slug = re.search(r"/news/(\d{4}-[\w-]+?)(?:-(?:results|overview))?/?$", href)
                 if not match_slug:
                     continue
 
                 slug = match_slug.group(1).replace("-results", "").replace("-overview", "")
-                
-                # Exclure d'office les articles hors-séries ou sous-pages
                 if any(bad in slug.lower() for bad in ["anomalysites", "schedule", "rules", "guidelines"]):
                     continue
 
@@ -129,7 +190,6 @@ def discover_anomaly_seasons(max_pages=15):
                 clean_name = raw_name.replace("plus", "+").title()
                 display_title = f"{clean_name} ({year})" if year else clean_name
 
-                # Priorité aux pages de résultats sur les annonces
                 if is_results:
                     discovered[slug] = {
                         "title": {"fr": display_title, "en": display_title},
@@ -147,8 +207,8 @@ def discover_anomaly_seasons(max_pages=15):
             print(f"Erreur sur la page {page} : {e}")
             break
 
-    # Fallback propre au cas où Niantic archive au-delà de max_pages
-    known_seasons = {
+    # Saisons modernes connues garanties (2024-2026)
+    modern_known = {
         "2026-cygnus": ("Cygnus (2026)", "https://ingress.com/news/2026-cygnus", "upcoming"),
         "2026-apollo": ("Apollo (2026)", "https://ingress.com/news/2026-apollo-results", "active"),
         "2026-orion": ("Orion (2026)", "https://ingress.com/news/2026-orion-results", "archived"),
@@ -157,7 +217,7 @@ def discover_anomaly_seasons(max_pages=15):
         "2025-plusdelta": ("+Delta (2025)", "https://ingress.com/news/2025-plusdelta-results", "archived")
     }
 
-    for k_slug, (k_title, k_url, k_status) in known_seasons.items():
+    for k_slug, (k_title, k_url, k_status) in modern_known.items():
         if k_slug not in discovered:
             discovered[k_slug] = {
                 "title": {"fr": k_title, "en": k_title},
@@ -165,9 +225,26 @@ def discover_anomaly_seasons(max_pages=15):
                 "status": k_status
             }
 
+    # Fusion avec les archives historiques (2022-2023)
+    for h_slug, h_data in HISTORICAL_SEASONS.items():
+        if h_slug not in discovered:
+            discovered[h_slug] = h_data
+
     return discovered
 
-def fetch_raw_data(url, status):
+
+def fetch_raw_data(url, status, slug):
+    if slug in HISTORICAL_SEASONS:
+        hist = HISTORICAL_SEASONS[slug]
+        return {
+            "banner": hist["banner"],
+            "season_overview": hist["season_overview"],
+            "sites": [],
+            "has_pending_scores": False,
+            "is_upcoming": False,
+            "preset_totals": (hist["enl_total"], hist["res_total"])
+        }
+
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
     res = requests.get(url, headers=headers, timeout=15)
     res.raise_for_status()
@@ -265,33 +342,43 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
             "card_state": "upcoming"
         }
 
-    enl_sum = 0.0
-    res_sum = 0.0
     season_overview = []
+    preset = raw_data.get("preset_totals")
+    if preset:
+        enl_sum, res_sum = preset
+        for row in raw_data["season_overview"]:
+            season_overview.append({
+                "name": row["name"],
+                "enl": row["enl"],
+                "res": row["res"],
+                "winner": "—"
+            })
+    else:
+        enl_sum = 0.0
+        res_sum = 0.0
+        for row in raw_data["season_overview"]:
+            enl_val = row["enl"]
+            res_val = row["res"]
+            winner = "—"
 
-    for row in raw_data["season_overview"]:
-        enl_val = row["enl"]
-        res_val = row["res"]
-        winner = "—"
+            if enl_val != "??" and res_val != "??":
+                try:
+                    e = float(enl_val.replace(",", "").replace(" ", ""))
+                    r = float(res_val.replace(",", "").replace(" ", ""))
+                    enl_sum += e
+                    res_sum += r
+                    winner = "🟢 ENL" if e > r else ("🔵 RES" if r > e else t["tie"])
+                except ValueError:
+                    pass
+            else:
+                winner = t["waiting"]
 
-        if enl_val != "??" and res_val != "??":
-            try:
-                e = float(enl_val.replace(",", "").replace(" ", ""))
-                r = float(res_val.replace(",", "").replace(" ", ""))
-                enl_sum += e
-                res_sum += r
-                winner = "🟢 ENL" if e > r else ("🔵 RES" if r > e else t["tie"])
-            except ValueError:
-                pass
-        else:
-            winner = t["waiting"]
-
-        season_overview.append({
-            "name": row["name"],
-            "enl": enl_val,
-            "res": res_val,
-            "winner": winner
-        })
+            season_overview.append({
+                "name": row["name"],
+                "enl": enl_val,
+                "res": res_val,
+                "winner": winner
+            })
 
     enl_sum = round(enl_sum, 1)
     res_sum = round(res_sum, 1)
@@ -367,7 +454,7 @@ def main():
     for slug, info in seasons.items():
         try:
             print(f"Scraping : {slug}...")
-            data = fetch_raw_data(info["url"], info.get("status", "active"))
+            data = fetch_raw_data(info["url"], info.get("status", "active"), slug)
             scraped_data[slug] = data
 
             if info.get("status") != "upcoming" and active_slug is None and data.get("has_pending_scores"):
@@ -399,10 +486,13 @@ def main():
                 card = process_season_for_lang(slug, info, data, card_state, lang, t, env, now_iso)
                 hub_cards.append(card)
 
-        # Ordre antéchronologique : UPCOMING (0) -> LIVE (1) -> ARCHIVED (2)
-        # UPCOMING (0) -> LIVE (1) -> ARCHIVED (2)
+        # Ordre d'affichage : UPCOMING (0) -> LIVE (1) -> ARCHIVED triées par date décroissante (2)
         order = {"upcoming": 0, "live": 1, "archived": 2}
-        hub_cards.sort(key=lambda c: (order.get(c["card_state"], 3), -int(c["slug"][:4]) if c["slug"][:4].isdigit() else 0, c["slug"]))
+        hub_cards.sort(key=lambda c: (
+            order.get(c["card_state"], 3),
+            -int(c["slug"][:4]) if c["slug"][:4].isdigit() else 0,
+            c["slug"]
+        ))
 
         tmpl_hub = env.get_template("hub_template.html.j2")
         rendered_hub = tmpl_hub.render(
@@ -414,7 +504,7 @@ def main():
         with open(os.path.join(dest_dir, "index.html"), "w", encoding="utf-8") as f:
             f.write(rendered_hub)
 
-    print("Actualisation du Hub terminée.")
+    print("Actualisation du Hub terminée avec succès.")
 
 
 if __name__ == "__main__":
