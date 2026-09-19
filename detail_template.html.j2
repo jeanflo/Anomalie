@@ -19,6 +19,16 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 2rem;
+      gap: 1rem;
+    }
+    .nav-left {
+      display: flex;
+      align-items: center;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
     a.back {
       color: #00bbff;
@@ -26,14 +36,23 @@
       font-weight: 500;
     }
     a.back:hover { text-decoration: underline; }
-    .lang-btn {
+    .nav-btn {
       color: #e2e8f0;
       text-decoration: none;
       font-size: 0.85rem;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       padding: 5px 12px;
       border-radius: 20px;
       background: rgba(255, 255, 255, 0.04);
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #00bbff;
+      color: #ffffff;
     }
     table {
       width: 100%;
@@ -67,9 +86,19 @@
 </head>
 <body>
   <div class="top-nav">
-    <a href="index.html" class="back">{{ t.back }}</a>
-    <a href="{{ t.switch_url }}{{ slug }}.html" class="lang-btn">{{ t.switch_label }}</a>
+    <div class="nav-left">
+      <a href="index.html" class="back">{{ t.back }}</a>
+    </div>
+    <div class="nav-right">
+      {% if official_url %}
+      <a href="{{ official_url }}" target="_blank" rel="noopener noreferrer" class="nav-btn">
+        {{ t.official_article }} ↗
+      </a>
+      {% endif %}
+      <a href="{{ t.switch_url }}{{ slug }}.html" class="nav-btn">{{ t.switch_label }}</a>
+    </div>
   </div>
+
   {{ content }}
 
   <script>
