@@ -82,7 +82,6 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Discoverie (2023)", "en": "Discoverie (2023)"},
         "url": "https://ingress.com/news/discoverie-rules",
         "status": "archived",
-        "banner": "https://ingress.com/assets/images/anomalies/discoverie/discoverie-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 (Madrid, Taichung, Curitiba)", "enl": "539.0", "res": "461.0"},
             {"name": "Phase 2 (Kinetic Challenge Op)", "enl": "49.0%", "res": "51.0% (x1.331)"},
@@ -97,7 +96,6 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Ctrl (2023)", "en": "Ctrl (2023)"},
         "url": "https://ingress.com/news/ctrl-rules",
         "status": "archived",
-        "banner": "https://ingress.com/assets/images/anomalies/ctrl/ctrl-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 (Santa Cruz, Bandung, Rotenburg)", "enl": "509.0", "res": "467.0"},
             {"name": "Phase 2 (Oslo, Songpa, Charleston)", "enl": "507.0", "res": "460.0"},
@@ -110,7 +108,6 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Echo (2023)", "en": "Echo (2023)"},
         "url": "https://ingress.com/news/echo-rules",
         "status": "archived",
-        "banner": "https://ingress.com/assets/images/anomalies/echo/echo-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 (Jacksonville, Baguio, Pietermaritzburg)", "enl": "666.0", "res": "249.0"},
             {"name": "Phase 2 (Brisbane, Brighton, Montevideo)", "enl": "585.0", "res": "335.0"},
@@ -123,7 +120,6 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Epiphany Dawn (2022)", "en": "Epiphany Dawn (2022)"},
         "url": "https://ingress.com/news/epiphany-dawn-rules",
         "status": "archived",
-        "banner": "https://ingress.com/assets/images/anomalies/epiphany-dawn/epiphany-dawn-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 & Connected Cells", "enl": "412.0", "res": "488.0"},
             {"name": "Phase 2 (Los Angeles, Porto)", "enl": "380.0", "res": "420.0"},
@@ -136,7 +132,6 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "Kythera (2022)", "en": "Kythera (2022)"},
         "url": "https://ingress.com/news/kythera3-results",
         "status": "archived",
-        "banner": "https://ingress.com/assets/images/anomalies/kythera/kythera-key-art.jpg",
         "season_overview": [
             {"name": "Phase 1 (Final Report)", "enl": "620.0", "res": "580.0"},
             {"name": "Phase 2 (Final Report)", "enl": "122.0", "res": "138.0"},
@@ -234,10 +229,30 @@ def discover_anomaly_seasons(max_pages=3):
 
 
 def fetch_raw_data(url, status, slug):
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
+    banner = "https://placehold.co/600x300/141c2e/FFF?text=Anomaly"
+
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        res.raise_for_status()
+        soup = BeautifulSoup(res.text, "html.parser")
+        
+        # 1. Extraction de la véritable image de couverture officielle (og:image ou twitter:image)
+        og_image = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
+        if og_image and og_image.get("content"):
+            banner = og_image["content"].strip()
+            # Si le lien est relatif (/news/...), on le préfixe
+            if banner.startswith("/"):
+                banner = f"https://ingress.com{banner}"
+    except Exception as e:
+        print(f"Erreur de chargement pour {slug} ({url}) : {e}")
+        soup = BeautifulSoup("", "html.parser")
+
+    # Si c'est une saison historique aux règles particulières :
     if slug in HISTORICAL_SEASONS:
         hist = HISTORICAL_SEASONS[slug]
         return {
-            "banner": hist["banner"],
+            "banner": banner,
             "season_overview": hist["season_overview"],
             "sites": [],
             "has_pending_scores": False,
@@ -245,14 +260,7 @@ def fetch_raw_data(url, status, slug):
             "preset_totals": (hist["enl_total"], hist["res_total"])
         }
 
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
-    res = requests.get(url, headers=headers, timeout=15)
-    res.raise_for_status()
-    soup = BeautifulSoup(res.text, "html.parser")
-
-    og_image = soup.find("meta", property="og:image")
-    banner = og_image["content"] if og_image else "https://placehold.co/600x300/141c2e/FFF?text=Anomaly"
-
+    # Si c'est une saison future :
     if status == "upcoming":
         return {
             "banner": banner,
@@ -262,6 +270,7 @@ def fetch_raw_data(url, status, slug):
             "is_upcoming": True
         }
 
+    # Sinon : extraction automatique standard (2024-2026)
     season_overview_raw = []
     has_pending_scores = False
 
