@@ -7,12 +7,32 @@
 
 ## 📊 Tableau récapitulatif de la saison
 
-| Épreuve / Événement | 🟢 Éclairés (ENL) | 🔵 Résistance (RES) | Vainqueur |
-| :--- | :---: | :---: | :---: |
-{% for row in season_overview %}
-| **{{ row.name }}** | {{ row.enl }} | {{ row.res }} | {{ row.winner }} |
-{% endfor %}
-| **TOTAL PARTIEL** | **{{ enl_total }} pts** | **{{ res_total }} pts** | **{% if diff > 0 %}Avance RES (+{{ diff|round(1) }}){% elif diff < 0 %}Avance ENL (+{{ (-diff)|round(1) }}){% else %}Égalité{% endif %}** |
+<table>
+  <thead>
+    <tr>
+      <th style="text-align:left;">Épreuve / Événement</th>
+      <th>🟢 Éclairés (ENL)</th>
+      <th>🔵 Résistance (RES)</th>
+      <th>Vainqueur</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in season_overview %}
+    <tr>
+      <td style="text-align:left;"><strong>{{ row.name }}</strong></td>
+      <td>{{ row.enl }}</td>
+      <td>{{ row.res }}</td>
+      <td>{{ row.winner }}</td>
+    </tr>
+    {% endfor %}
+    <tr style="background: rgba(255,255,255,0.05); font-weight: bold;">
+      <td style="text-align:left;">TOTAL PARTIEL</td>
+      <td>{{ enl_total }} pts</td>
+      <td>{{ res_total }} pts</td>
+      <td>{% if diff > 0 %}🔵 Avance RES (+{{ diff|round(1) }}){% elif diff < 0 %}🟢 Avance ENL (+{{ (-diff)|round(1) }}){% else %}Égalité{% endif %}</td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
@@ -21,12 +41,41 @@
 {% for site in sites %}
 ### 🏙️ {{ site.name }} — {% if site.res_pts != '??' and site.enl_pts != '??' %}{% if site.res_pts|float > site.enl_pts|float %}🔵 Victoire RES ({{ site.res_pts }} vs {{ site.enl_pts }}){% else %}🟢 Victoire ENL ({{ site.enl_pts }} vs {{ site.res_pts }}){% endif %}{% else %}⏳ Scores en attente{% endif %}
 
-| Catégorie | 🟢 ENL | 🔵 RES |
-| :--- | :---: | :---: |
-| **Special Ops** | {{ site.special_ops.enl }} | {{ site.special_ops.res }} |
-| **Shard Battle** | {{ site.shards.enl }} | {{ site.shards.res }} |
-| **Beacon Battle** | {{ site.beacons.enl }} | {{ site.beacons.res }} |
-| **Portails Uniques** | {{ site.uniques.enl }} | {{ site.uniques.res }} |
-| **Total Site** | **{{ site.enl_pts }}** | **{{ site.res_pts }}** |
+<table>
+  <thead>
+    <tr>
+      <th style="text-align:left;">Catégorie</th>
+      <th>🟢 ENL</th>
+      <th>🔵 RES</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align:left;"><strong>Special Ops</strong></td>
+      <td>{{ site.special_ops.enl }}</td>
+      <td>{{ site.special_ops.res }}</td>
+    </tr>
+    <tr>
+      <td style="text-align:left;"><strong>Shard Battle</strong></td>
+      <td>{{ site.shards.enl }}</td>
+      <td>{{ site.shards.res }}</td>
+    </tr>
+    <tr>
+      <td style="text-align:left;"><strong>Beacon Battle</strong></td>
+      <td>{{ site.beacons.enl }}</td>
+      <td>{{ site.beacons.res }}</td>
+    </tr>
+    <tr>
+      <td style="text-align:left;"><strong>Portails Uniques</strong></td>
+      <td>{{ site.uniques.enl }}</td>
+      <td>{{ site.uniques.res }}</td>
+    </tr>
+    <tr style="background: rgba(255,255,255,0.05); font-weight: bold;">
+      <td style="text-align:left;">Total Site</td>
+      <td>{{ site.enl_pts }}</td>
+      <td>{{ site.res_pts }}</td>
+    </tr>
+  </tbody>
+</table>
 
 {% endfor %}
