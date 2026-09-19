@@ -38,6 +38,10 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'public'
+      - name: Génération du Hub et des synthèses
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python tracker.py
 
       - name: Déploiement sur GitHub Pages
         uses: actions/deploy-pages@v4
