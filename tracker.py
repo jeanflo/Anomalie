@@ -5,19 +5,38 @@ import requests
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 
-URL = "https://ingress.com/news/2026-apollo-results"
+# Dictionnaire des saisons à surveiller (Slug du fichier : {Titre, URL})
+SEASONS = {
+    "2026-apollo": {
+        "title": "Apollo (2026)",
+        "url": "https://ingress.com/news/2026-apollo-results"
+    },
+    # Tu pourras ajouter les prochaines séries ici au fil de l'eau :
+    # "2026-q4-season": {
+    #     "title": "Prochaine Saison (2026)",
+    #     "url": "https://ingress.com/news/2026-q4-season-results"
+    # }
+}
+
 OUTPUT_DIR = "output"
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "recap_anomaly.md")
 
 
 def clean_text(cell):
     return cell.get_text(strip=True).replace("\xa0", " ")
 
 
-def fetch_and_parse():
+def process_season(slug, info, env):
+    url = info["url"]
+    title = info["title"]
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
-    res = requests.get(URL, headers=headers, timeout=15)
-    res.raise_for_status()
+
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        res.raise_for_status()
+    except Exception as e:
+        print(f"Erreur lors de la récupération de {slug} ({url}) : {e}")
+        return None
+
     soup = BeautifulSoup(res.text, "html.parser")
 
     season_overview = []
@@ -31,7 +50,7 @@ def fetch_and_parse():
             continue
         for r in rows[1:]:
             cols = [clean_text(td) for td in r.find_all(["td", "th"])]
-            if len(cols) >= 3 and any(k in cols[0].lower() for k in ["apollo global op", "first saturday", "singapore", "paris", "seoul", "bogotá", "helsinki"]):
+            if len(cols) >= 3 and any(k in cols[0].lower() for k in ["global op", "first saturday", "singapore", "paris", "seoul", "bogotá", "helsinki", "denver"]):
                 name = cols[0]
                 enl_val = cols[1]
                 res_val = cols[2]
@@ -61,7 +80,7 @@ def fetch_and_parse():
     for sh in site_headers:
         site_name = sh.strip().replace("Site:", "").strip()
         parent_container = sh.find_parent(["div", "section"]) or soup
-        
+
         site_dict = {
             "name": site_name,
             "enl_pts": "??",
@@ -85,10 +104,9 @@ def fetch_and_parse():
 
         sites_data.append(site_dict)
 
-    env = Environment(loader=FileSystemLoader("."))
     tmpl = env.get_template("template.md.j2")
     rendered = tmpl.render(
-        season_title="Apollo (2026)",
+        season_title=title,
         updated_at=datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
         enl_total=round(enl_sum, 1),
         res_total=round(res_sum, 1),
@@ -97,12 +115,41 @@ def fetch_and_parse():
         sites=sites_data
     )
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    out_file = os.path.join(OUTPUT_DIR, f"{slug}.md")
+    with open(out_file, "w", encoding="utf-8") as f:
         f.write(rendered)
 
-    print(f"Synthèse actualisée dans {OUTPUT_FILE}")
+    print(f"Génération terminée : {out_file}")
+    return {
+        "title": title,
+        "slug": slug,
+        "file": f"{slug}.md",
+        "enl": round(enl_sum, 1),
+        "res": round(res_sum, 1)
+    }
+
+
+def main():
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    env = Environment(loader=FileSystemLoader("."))
+
+    processed = []
+    for slug, info in SEASONS.items():
+        res = process_season(slug, info, env)
+        if res:
+            processed.append(res)
+
+    # Génération d'un index README.md dans output/ pour lister toutes les séries
+    index_md = "# 🏆 Archives des Anomalies Ingress\n\n"
+    index_md += f"> Mis à jour le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n\n"
+    index_md += "| Série / Saison | 🟢 Score ENL | 🔵 Score RES | Lien |\n"
+    index_md += "| :--- | :---: | :---: | :--- |\n"
+    for item in processed:
+        index_md += f"| **{item['title']}** | {item['enl']} | {item['res']} | [Consulter le détail]({item['file']}) |\n"
+
+    with open(os.path.join(OUTPUT_DIR, "README.md"), "w", encoding="utf-8") as f:
+        f.write(index_md)
 
 
 if __name__ == "__main__":
-    fetch_and_parse()
+    main()
