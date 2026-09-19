@@ -45,7 +45,7 @@
     }
     header {
       text-align: center;
-      margin-bottom: 3rem;
+      margin-bottom: 2rem;
     }
     header h1 {
       font-size: 2.2rem;
@@ -53,6 +53,76 @@
       text-transform: uppercase;
       margin: 0 0 0.5rem 0;
     }
+
+    /* Bandeau palmarès global */
+    .standings-banner {
+      max-width: 760px;
+      margin: 0 auto 3rem auto;
+      background: linear-gradient(180deg, #141c2e 0%, #0e1524 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.2rem 1.6rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .standings-title {
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.9rem;
+    }
+    .standings-counts {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.8rem;
+    }
+    .faction-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .stat-num {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .stat-enl { color: var(--enl-green); }
+    .stat-res { color: var(--res-blue); }
+    .stat-tie {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    /* Jauge comparative bicolore */
+    .ratio-bar {
+      height: 8px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      gap: 2px;
+    }
+    .bar-segment-enl {
+      height: 100%;
+      background: var(--enl-green);
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.5);
+      transition: width 0.6s ease;
+    }
+    .bar-segment-res {
+      height: 100%;
+      background: var(--res-blue);
+      box-shadow: 0 0 10px rgba(0, 187, 255, 0.5);
+      transition: width 0.6s ease;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -77,7 +147,6 @@
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
     }
 
-    /* Carte en direct */
     .card-live {
       border: 2px solid var(--res-blue);
       box-shadow: 0 0 22px rgba(0, 187, 255, 0.25);
@@ -86,7 +155,6 @@
       box-shadow: 0 0 32px rgba(0, 187, 255, 0.45);
     }
 
-    /* Carte à venir */
     .card-upcoming {
       border: 1px dashed var(--warn-yellow);
       box-shadow: 0 0 16px rgba(255, 183, 3, 0.15);
@@ -95,7 +163,6 @@
       box-shadow: 0 0 24px rgba(255, 183, 3, 0.35);
     }
 
-    /* Badges sur bannière */
     .banner-badge {
       position: absolute;
       top: 12px;
@@ -198,6 +265,28 @@
     <h1>{{ t.hub_title }}</h1>
     <p style="color: var(--text-muted);">{{ t.hub_subtitle }}</p>
   </header>
+
+  <!-- Bandeau palmarès global -->
+  <section class="standings-banner">
+    <div class="standings-title">{{ t.global_victories }}</div>
+    <div class="standings-counts">
+      <div class="faction-stat stat-enl">
+        <span class="stat-num">{{ standings.enl_wins }}</span>
+        <span class="stat-label">{{ t.victories_enl }} ({{ standings.enl_pct }}%)</span>
+      </div>
+      {% if standings.ties > 0 %}
+      <div class="stat-tie">{{ standings.ties }} {{ t.ties }}</div>
+      {% endif %}
+      <div class="faction-stat stat-res">
+        <span class="stat-label">({{ standings.res_pct }}%) {{ t.victories_res }}</span>
+        <span class="stat-num">{{ standings.res_wins }}</span>
+      </div>
+    </div>
+    <div class="ratio-bar">
+      <div class="bar-segment-enl" style="width: {{ standings.enl_pct }}%;"></div>
+      <div class="bar-segment-res" style="width: {{ standings.res_pct }}%;"></div>
+    </div>
+  </section>
 
   <main class="grid">
     {% for s in seasons %}
