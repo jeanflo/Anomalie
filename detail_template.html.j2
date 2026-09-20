@@ -98,6 +98,54 @@
       border-radius: 0 8px 8px 0;
     }
     hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 2.5rem 0; }
+
+    /* Lignes en attente / en direct */
+    tr.row-pending {
+      background: rgba(239, 68, 68, 0.12) !important;
+    }
+    tr.row-pending td {
+      border-top: 1px solid rgba(239, 68, 68, 0.4);
+      border-bottom: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+    tr.row-pending td:first-child {
+      border-left: 3px solid #ef4444;
+    }
+    tr.row-pending td:last-child {
+      border-right: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    tr.row-pending a {
+      color: #f87171 !important;
+      border-bottom-color: rgba(239, 68, 68, 0.6) !important;
+    }
+
+    /* Badge clignotant LIVE */
+    .badge-pending-mini {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 1px 6px;
+      margin-left: 6px;
+      border-radius: 4px;
+      background: #ef4444;
+      color: #ffffff;
+      vertical-align: middle;
+      animation: pulse-badge 2s infinite;
+    }
+
+    @keyframes pulse-badge {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(0.96); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Ligne Total final */
+    tr.row-total td {
+      background: rgba(255, 255, 255, 0.04);
+      font-weight: bold;
+      border-top: 2px solid rgba(255, 255, 255, 0.15);
+    }
   </style>
 </head>
 <body>
