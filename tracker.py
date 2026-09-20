@@ -38,15 +38,18 @@ TRANSLATIONS = {
         "global_res_lead": "🔵 <strong>La Résistance mène</strong> avec <strong>{res}</strong> contre <strong>{enl}</strong> pts (+{diff} pts)",
         "global_enl_lead": "🟢 <strong>Les Éclairés mènent</strong> avec <strong>{enl}</strong> contre <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Égalité parfaite</strong> : {enl} pts",
-        "season_overview": "Tableau récapitulatif de la saison",
-        "city_results": "Résultats par Ville / Phase",
-        "col_event": "Épreuve / Événement",
+        "season_overview": "Synthèse Générale de la Saison",
+        "city_results": "Résultats des Villes Principales",
+        "global_ops_title": "Opérations Globales (Global Ops)",
+        "ifs_title": "Ingress First Saturday (IFS)",
+        "col_event": "Épreuve / Ville",
         "col_enl": "🟢 Éclairés (ENL)",
         "col_res": "🔵 Résistance (RES)",
         "col_winner": "Vainqueur",
-        "col_category": "Catégorie",
-        "total_partial": "TOTAL FINAL",
-        "total_site": "Total Site",
+        "col_category": "Discipline / Phase",
+        "total_partial": "TOTAL CUMULÉ",
+        "total_site": "Total du Site",
+        "total_fs": "Total Season Points IFS",
         "date_format": "%d/%m/%Y à %H:%M:%S"
     },
     "en": {
@@ -76,14 +79,17 @@ TRANSLATIONS = {
         "global_enl_lead": "🟢 <strong>The Enlightened lead</strong> with <strong>{enl}</strong> against <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Perfect tie</strong>: {enl} pts",
         "season_overview": "Season Overview",
-        "city_results": "Results by City / Phase",
-        "col_event": "Event / Phase",
+        "city_results": "Primary Site Results",
+        "global_ops_title": "Global Operations (Global Ops)",
+        "ifs_title": "Ingress First Saturday (IFS)",
+        "col_event": "Event / City",
         "col_enl": "🟢 Enlightened (ENL)",
         "col_res": "🔵 Resistance (RES)",
         "col_winner": "Winner",
-        "col_category": "Category",
-        "total_partial": "FINAL TOTAL",
+        "col_category": "Discipline / Phase",
+        "total_partial": "CUMULATIVE TOTAL",
         "total_site": "Site Total",
+        "total_fs": "Total IFS Season Points",
         "date_format": "%Y-%m-%d at %H:%M:%S"
     }
 }
@@ -102,7 +108,10 @@ HISTORICAL_SEASONS = {
             {"name": "+Beta Connected Cells", "enl": "967.0", "res": "613.0"}
         ],
         "enl_total": 2560.2,
-        "res_total": 2219.8
+        "res_total": 2219.8,
+        "sites": [],
+        "global_ops": [],
+        "ifs": []
     },
     "2025-plusdelta": {
         "title": {"fr": "+Delta (2025)", "en": "+Delta (2025)"},
@@ -115,7 +124,10 @@ HISTORICAL_SEASONS = {
             {"name": "Site: Washington DC", "enl": "128.0", "res": "172.0"}
         ],
         "enl_total": 1393.2,
-        "res_total": 1306.8
+        "res_total": 1306.8,
+        "sites": [],
+        "global_ops": [],
+        "ifs": []
     },
     "2023-discoverie": {
         "title": {"fr": "Discoverie (2023)", "en": "Discoverie (2023)"},
@@ -129,7 +141,10 @@ HISTORICAL_SEASONS = {
             {"name": "Phase 5 (Honolulu, İzmir, Colombo)", "enl": "616.0", "res": "511.0"}
         ],
         "enl_total": 1704.0,
-        "res_total": 1572.0
+        "res_total": 1572.0,
+        "sites": [],
+        "global_ops": [],
+        "ifs": []
     },
     "2023-ctrl": {
         "title": {"fr": "Ctrl (2023)", "en": "Ctrl (2023)"},
@@ -141,7 +156,10 @@ HISTORICAL_SEASONS = {
             {"name": "Phase 3 (Kobe, Reims, Tacoma)", "enl": "656.0", "res": "334.0"}
         ],
         "enl_total": 1672.0,
-        "res_total": 1261.0
+        "res_total": 1261.0,
+        "sites": [],
+        "global_ops": [],
+        "ifs": []
     },
     "2023-echo": {
         "title": {"fr": "Echo (2023)", "en": "Echo (2023)"},
@@ -153,7 +171,10 @@ HISTORICAL_SEASONS = {
             {"name": "Phase 3 (Athens, Ueda, Winnipeg)", "enl": "585.0", "res": "310.0"}
         ],
         "enl_total": 1836.0,
-        "res_total": 894.0
+        "res_total": 894.0,
+        "sites": [],
+        "global_ops": [],
+        "ifs": []
     },
     "2022-epiphany-dawn": {
         "title": {"fr": "Epiphany Dawn (2022)", "en": "Epiphany Dawn (2022)"},
@@ -165,7 +186,10 @@ HISTORICAL_SEASONS = {
             {"name": "Phase 3 (Yokohama)", "enl": "512.0", "res": "688.0"}
         ],
         "enl_total": 1304.0,
-        "res_total": 1596.0
+        "res_total": 1596.0,
+        "sites": [],
+        "global_ops": [],
+        "ifs": []
     },
     "2022-kythera": {
         "title": {"fr": "Kythera (2022)", "en": "Kythera (2022)"},
@@ -177,7 +201,10 @@ HISTORICAL_SEASONS = {
             {"name": "Phase 3 (Final Report)", "enl": "920.5", "res": "761.5"}
         ],
         "enl_total": 1662.5,
-        "res_total": 1479.5
+        "res_total": 1479.5,
+        "sites": [],
+        "global_ops": [],
+        "ifs": []
     }
 }
 
@@ -225,33 +252,37 @@ def parse_with_gemini(html_content):
 
         prompt = """
 Tu es un extracteur d'informations expert pour le jeu Ingress Anomaly.
-Analyse le code HTML brut officiel de Niantic et extrais avec précision les points de saison (Season Points).
+Analyse le code HTML brut officiel de Niantic et extrais avec précision les points de saison (Season Points) structurés de manière hiérarchique.
 
-Retourne UNIQUEMENT un objet JSON valide respectant scrupuleusement ce format :
+Retourne UNIQUEMENT un objet JSON valide qui respecte exactement cette structure :
 {
   "season_overview": [
     {"name": "Nom de l'épreuve/ville (ex: Singapore, Paris, Seoul, Bogotá, Helsinki, Denver, Global Op, First Saturday)", "enl": "score ou ??", "res": "score ou ??"}
   ],
   "sites": [
     {
-      "name": "Nom de la ville principale (ex: Singapore, Paris, Seoul, Bogotá, Helsinki, Denver)",
+      "name": "Nom de la ville principale",
       "enl_pts": "score total du site ou ??",
       "res_pts": "score total du site ou ??",
-      "special_ops": {"enl": "score ou 0.0", "res": "score ou 0.0"},
+      "stealth_ops": {"enl": "score ou 0.0", "res": "score ou 0.0"},
+      "urban_ops": {"enl": "score ou 0.0", "res": "score ou 0.0"},
       "shards": {"enl": "score ou ??", "res": "score ou ??"},
       "beacons": {"enl": "score ou ??", "res": "score ou ??"},
       "uniques": {"enl": "score ou ??", "res": "score ou ??"}
     }
+  ],
+  "global_ops": [
+    {"event": "Nom de l'épreuve ou sous-événement", "enl": "score", "res": "score"}
+  ],
+  "ifs": [
+    {"phase": "Mois ou total (ex: July, August, September, Season Points Total)", "enl": "valeur ou ???", "res": "valeur ou ???"}
   ]
 }
 
 Consignes strictes :
-- N'extrais JAMAIS les AP ou battle points bruts (ex: 37,287,327). Prends EXCLUSIVEMENT les Season Points (ex: 981.4 / 1018.6).
-- Si une épreuve est marquée (Cancelled), les points valent 0.0.
-- Si une ville ou une épreuve n'est pas encore complétée (?? ou TBD), indique "??" sans inventer de valeur.
-- Pour les épreuves composées de plusieurs mois (comme First Saturday avec July, August, September) :
-  si un des mois contient "???" ou est en attente, nomme l'événement "First Saturday (Sept. en attente)" et garde le score partiel cumulé actuel.
-- Dans "sites", ne mets que les villes majeures, pas les doublons.
+- N'extrais JAMAIS les AP bruts (ex: 37,287,327). Prends les Season Points pour les totaux.
+- Pour les villes, sépare bien stealth_ops et urban_ops si distincts, sinon mets la valeur dans stealth_ops et 0.0 dans urban_ops.
+- Pour ifs, liste chaque mois ainsi que la ligne de Total. Si un mois est '???', note '???'.
 """
 
         models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
@@ -374,7 +405,9 @@ def fetch_raw_data(url, status, slug):
         return {
             "banner": banner,
             "season_overview": hist["season_overview"],
-            "sites": [],
+            "sites": hist.get("sites", []),
+            "global_ops": hist.get("global_ops", []),
+            "ifs": hist.get("ifs", []),
             "has_pending_scores": False,
             "is_upcoming": False,
             "preset_totals": (hist["enl_total"], hist["res_total"])
@@ -385,12 +418,14 @@ def fetch_raw_data(url, status, slug):
             "banner": banner,
             "season_overview": [],
             "sites": [],
+            "global_ops": [],
+            "ifs": [],
             "has_pending_scores": False,
             "is_upcoming": True
         }
 
     if os.getenv("GEMINI_API_KEY") and html_text:
-        print(f"Analyse IA en cours avec Gemini pour {slug}...")
+        print(f"Analyse IA structurée avec Gemini pour {slug}...")
         ai_result = parse_with_gemini(html_text)
         if ai_result and "season_overview" in ai_result and ai_result["season_overview"]:
             print(f"Extraction IA validée pour {slug} !")
@@ -398,15 +433,24 @@ def fetch_raw_data(url, status, slug):
                 item["enl"] == "??" or item["res"] == "??" or "en attente" in item["name"].lower()
                 for item in ai_result["season_overview"]
             )
+            # Vérification dans IFS
+            if any("???" in str(i.get("enl", "")) or "???" in str(i.get("res", "")) for i in ai_result.get("ifs", [])):
+                has_pending = True
+
             return {
                 "banner": banner,
                 "season_overview": ai_result["season_overview"],
                 "sites": ai_result.get("sites", []),
+                "global_ops": ai_result.get("global_ops", []),
+                "ifs": ai_result.get("ifs", []),
                 "has_pending_scores": has_pending,
                 "is_upcoming": False
             }
 
+    # Analyse de secours conventionnelle (Fallback BS4)
     season_overview_raw = []
+    global_ops_raw = []
+    ifs_raw = []
     has_pending_scores = False
 
     for table in soup.find_all("table"):
@@ -415,6 +459,7 @@ def fetch_raw_data(url, status, slug):
             continue
         headers_text = [clean_text(th).lower() for th in header_row.find_all(["th", "td"])]
 
+        # Tableau général récapitulatif
         if len(headers_text) >= 3 and "site" in headers_text[0] and "enlightened" in headers_text[1] and "resistance" in headers_text[2]:
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
@@ -437,9 +482,13 @@ def fetch_raw_data(url, status, slug):
                             "res": res_v
                         })
 
+        # Tableaux Global Ops et IFS
         elif len(headers_text) >= 3 and ("event" in headers_text[0] or "events" in headers_text[0]):
+            table_text = table.get_text().lower()
+            is_fs_table = "first saturday" in table_text or "participants" in table_text
+            
             table_has_pending = False
-            pending_subdetail = ""
+            pending_label = ""
             total_row = None
 
             for r in table.find_all("tr")[1:]:
@@ -449,30 +498,29 @@ def fetch_raw_data(url, status, slug):
                     val_enl = cols[1].strip()
                     val_res = cols[2].strip()
 
-                    # Détection d'un mois / phase en attente (ex: Number of Participants in September ??? ???)
                     if "??" in val_enl or "??" in val_res or "tbd" in val_enl.lower():
                         table_has_pending = True
                         has_pending_scores = True
                         if "september" in row_label.lower():
-                            pending_subdetail = "Sept. en attente"
-                        elif "august" in row_label.lower():
-                            pending_subdetail = "Août en attente"
-                        elif "july" in row_label.lower():
-                            pending_subdetail = "Juil. en attente"
+                            pending_label = "Sept. en attente"
+
+                    if is_fs_table:
+                        ifs_raw.append({"phase": row_label, "enl": val_enl, "res": val_res})
+                    else:
+                        global_ops_raw.append({"event": row_label, "enl": val_enl, "res": val_res})
 
                     if any(k in row_label.lower() for k in ["total", "season points total"]):
                         total_row = (row_label, val_enl, val_res)
 
             if total_row:
                 row_label, enl_v, res_v = total_row
-                event_title = "Global Op" if "global op" in row_label.lower() else ("First Saturday" if "first saturday" in row_label.lower() else row_label)
-                
+                event_title = "First Saturday" if is_fs_table else "Global Op"
                 enl_clean = enl_v.replace(",", "").strip()
                 res_clean = res_v.replace(",", "").strip()
 
                 if table_has_pending:
-                    suffix = pending_subdetail if pending_subdetail else "en attente"
-                    display_title = f"{event_title} ({suffix})"
+                    suffix = f" ({pending_label})" if pending_label else " (en attente)"
+                    display_title = f"{event_title}{suffix}"
                 else:
                     display_title = event_title
 
@@ -483,6 +531,7 @@ def fetch_raw_data(url, status, slug):
                         "res": res_clean
                     })
 
+    # Parsing détaillé des Villes principales (Sites)
     sites_raw = []
     site_headers = soup.find_all(re.compile(r"^h[2-4]$"), string=re.compile(r"Site:\s*([A-Za-zÀ-ÿ\s\-]+)", re.IGNORECASE))
 
@@ -497,7 +546,8 @@ def fetch_raw_data(url, status, slug):
             "name": site_name,
             "enl_pts": "??",
             "res_pts": "??",
-            "special_ops": {"enl": "0.0", "res": "0.0"},
+            "stealth_ops": {"enl": "0.0", "res": "0.0"},
+            "urban_ops": {"enl": "0.0", "res": "0.0"},
             "shards": {"enl": "??", "res": "??"},
             "beacons": {"enl": "??", "res": "??"},
             "uniques": {"enl": "??", "res": "??"}
@@ -516,8 +566,10 @@ def fetch_raw_data(url, status, slug):
 
             if hasattr(curr, "get_text"):
                 txt = curr.get_text().strip().lower()
-                if "special ops" in txt:
-                    current_context = "special_ops"
+                if "stealth ops" in txt:
+                    current_context = "stealth"
+                elif "urban ops" in txt:
+                    current_context = "urban"
                 elif "shard battle" in txt:
                     current_context = "shard"
                 elif "beacon battle" in txt:
@@ -526,8 +578,10 @@ def fetch_raw_data(url, status, slug):
             if hasattr(curr, "name") and curr.name == "table":
                 rows = curr.find_all("tr")
                 t_head = rows[0].get_text().lower() if rows else ""
-                if "ops" in t_head or "stealth ops" in t_head:
-                    current_context = "special_ops"
+                if "stealth" in t_head:
+                    current_context = "stealth"
+                elif "urban" in t_head:
+                    current_context = "urban"
                 elif "shards" in t_head:
                     current_context = "shard"
                 elif "wave number" in t_head:
@@ -546,8 +600,10 @@ def fetch_raw_data(url, status, slug):
                         elif len(cols) >= 3:
                             val_e = cols[1]
                             val_r = cols[2]
-                            if current_context == "special_ops":
-                                site_dict["special_ops"] = {"enl": val_e, "res": val_r}
+                            if current_context == "stealth":
+                                site_dict["stealth_ops"] = {"enl": val_e, "res": val_r}
+                            elif current_context == "urban":
+                                site_dict["urban_ops"] = {"enl": val_e, "res": val_r}
                             elif current_context == "beacon":
                                 site_dict["beacons"] = {"enl": val_e, "res": val_r}
                             elif current_context == "unique":
@@ -560,8 +616,20 @@ def fetch_raw_data(url, status, slug):
 
         if site_dict["enl_pts"] == "??" or site_dict["res_pts"] == "??":
             try:
-                tot_e = float(site_dict["special_ops"]["enl"]) + float(site_dict["shards"]["enl"]) + float(site_dict["beacons"]["enl"]) + float(site_dict["uniques"]["enl"])
-                tot_r = float(site_dict["special_ops"]["res"]) + float(site_dict["shards"]["res"]) + float(site_dict["beacons"]["res"]) + float(site_dict["uniques"]["res"])
+                tot_e = (
+                    float(site_dict["stealth_ops"]["enl"])
+                    + float(site_dict["urban_ops"]["enl"])
+                    + float(site_dict["shards"]["enl"])
+                    + float(site_dict["beacons"]["enl"])
+                    + float(site_dict["uniques"]["enl"])
+                )
+                tot_r = (
+                    float(site_dict["stealth_ops"]["res"])
+                    + float(site_dict["urban_ops"]["res"])
+                    + float(site_dict["shards"]["res"])
+                    + float(site_dict["beacons"]["res"])
+                    + float(site_dict["uniques"]["res"])
+                )
                 site_dict["enl_pts"] = str(round(tot_e, 1))
                 site_dict["res_pts"] = str(round(tot_r, 1))
             except ValueError:
@@ -573,6 +641,8 @@ def fetch_raw_data(url, status, slug):
         "banner": banner,
         "season_overview": season_overview_raw,
         "sites": sites_raw,
+        "global_ops": global_ops_raw,
+        "ifs": ifs_raw,
         "has_pending_scores": has_pending_scores,
         "is_upcoming": False
     }
@@ -662,7 +732,9 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         res_total=res_sum,
         diff=diff,
         season_overview=season_overview,
-        sites=raw_data["sites"]
+        sites=raw_data.get("sites", []),
+        global_ops=raw_data.get("global_ops", []),
+        ifs=raw_data.get("ifs", [])
     )
 
     with open(os.path.join(target_dir, f"{slug}.md"), "w", encoding="utf-8") as f:
