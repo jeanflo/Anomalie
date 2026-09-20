@@ -1,81 +1,34 @@
-# 🌐 {{ t.hub_title }} : {{ season_title }}
+# {{ season_title }}
 
-> **{{ t.last_update }}** : <time class="local-date" datetime="{{ updated_at }}">{{ updated_at }}</time>
-> **Statut** : {{ global_status }}
-
----
-
-## 📊 {{ t.season_overview }}
-
-<table>
-  <thead>
-    <tr>
-      <th style="text-align:left;">{{ t.col_event }}</th>
-      <th>{{ t.col_enl }}</th>
-      <th>{{ t.col_res }}</th>
-      <th>{{ t.col_winner }}</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in season_overview %}
-    <tr>
-      <td style="text-align:left;"><strong>{{ row.name }}</strong></td>
-      <td>{{ row.enl }}</td>
-      <td>{{ row.res }}</td>
-      <td>{{ row.winner }}</td>
-    </tr>
-    {% endfor %}
-    <tr style="background: rgba(255,255,255,0.05); font-weight: bold;">
-      <td style="text-align:left;">{{ t.total_partial }}</td>
-      <td>{{ enl_total }} pts</td>
-      <td>{{ res_total }} pts</td>
-      <td>{% if diff > 0 %}🔵 {{ t.res_lead }} (+{{ diff|round(1) }}){% elif diff < 0 %}🟢 {{ t.enl_lead }} (+{{ (-diff)|round(1) }}){% else %}{{ t.tie }}{% endif %}</td>
-    </tr>
-  </tbody>
-</table>
+> **Statut global :** {{ global_status }}  
+> *{{ t.last_update }} : {{ updated_at }}*
 
 ---
 
-## 📍 {{ t.city_results }}
+## {{ t.season_overview }}
+
+| {{ t.col_event }} | {{ t.col_enl }} | {{ t.col_res }} | {{ t.col_winner }} |
+| :--- | :---: | :---: | :---: |
+{% for row in season_overview -%}
+| **{{ row.name }}** | {{ row.enl }} | {{ row.res }} | {{ row.winner }} |
+{% endfor %}
+| **{{ t.total_partial }}** | **{{ enl_total }}** | **{{ res_total }}** | **{% if diff > 0 %}🔵 RES (+{{ diff }}){% elif diff < 0 %}🟢 ENL (+{{ -diff }}){% else %}{{ t.tie }}{% endif %}** |
+
+{% if sites and sites|length > 0 %}
+---
+
+## {{ t.city_results }}
 
 {% for site in sites %}
-### 🏙️ {{ site.name }} — {% if site.res_pts != '??' and site.enl_pts != '??' %}{% if site.res_pts|float > site.enl_pts|float %}🔵 {{ t.res_win }} ({{ site.res_pts }} vs {{ site.enl_pts }}){% else %}🟢 {{ t.enl_win }} ({{ site.enl_pts }} vs {{ site.res_pts }}){% endif %}{% else %}{{ t.waiting }}{% endif %}
+### {{ site.name }}
+- **{{ t.total_site }}** : 🟢 {{ site.enl_pts }} — 🔵 {{ site.res_pts }}
 
-<table>
-  <thead>
-    <tr>
-      <th style="text-align:left;">{{ t.col_category }}</th>
-      <th>🟢 ENL</th>
-      <th>🔵 RES</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style="text-align:left;"><strong>Special Ops</strong></td>
-      <td>{{ site.special_ops.enl }}</td>
-      <td>{{ site.special_ops.res }}</td>
-    </tr>
-    <tr>
-      <td style="text-align:left;"><strong>Shard Battle</strong></td>
-      <td>{{ site.shards.enl }}</td>
-      <td>{{ site.shards.res }}</td>
-    </tr>
-    <tr>
-      <td style="text-align:left;"><strong>Beacon Battle</strong></td>
-      <td>{{ site.beacons.enl }}</td>
-      <td>{{ site.beacons.res }}</td>
-    </tr>
-    <tr>
-      <td style="text-align:left;"><strong>Portails Uniques</strong></td>
-      <td>{{ site.uniques.enl }}</td>
-      <td>{{ site.uniques.res }}</td>
-    </tr>
-    <tr style="background: rgba(255,255,255,0.05); font-weight: bold;">
-      <td style="text-align:left;">{{ t.total_site }}</td>
-      <td>{{ site.enl_pts }}</td>
-      <td>{{ site.res_pts }}</td>
-    </tr>
-  </tbody>
-</table>
+| {{ t.col_category }} | {{ t.col_enl }} | {{ t.col_res }} |
+| :--- | :---: | :---: |
+| Special Ops | {{ site.special_ops.enl }} | {{ site.special_ops.res }} |
+| Shard Battle | {{ site.shards.enl }} | {{ site.shards.res }} |
+| Beacon Battle | {{ site.beacons.enl }} | {{ site.beacons.res }} |
+| Anomaly Uniques | {{ site.uniques.enl }} | {{ site.uniques.res }} |
 
 {% endfor %}
+{% endif %}
