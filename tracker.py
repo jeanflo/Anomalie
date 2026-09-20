@@ -227,7 +227,6 @@ def normalize_city_name(name):
 
 
 def slugify_anchor(text):
-    """Transforme un nom de ville en identifiant d'ancre HTML valide."""
     norm = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
     norm = re.sub(r"[^\w\s-]", "", norm).strip().lower()
     return re.sub(r"[-\s]+", "-", norm)
@@ -262,7 +261,7 @@ def parse_with_gemini(html_content):
 Tu es un extracteur d'informations expert pour le jeu Ingress Anomaly.
 Analyse le code HTML brut officiel de Niantic et extrais avec précision les points de saison (Season Points) structurés de manière hiérarchique.
 
-Retourne UNIQUEMENT un objet JSON valide qui respecte exactement cette structure :
+Retourne UNIQUEMENT un objet JSON valide respectant scrupuleusement cette structure :
 {
   "season_overview": [
     {"name": "Nom de l'épreuve/ville (ex: Singapore, Paris, Seoul, Bogotá, Helsinki, Denver, Global Op, First Saturday)", "enl": "score ou ??", "res": "score ou ??"}
@@ -444,7 +443,6 @@ def fetch_raw_data(url, status, slug):
             if any("???" in str(i.get("enl", "")) or "???" in str(i.get("res", "")) for i in ai_result.get("ifs", [])):
                 has_pending = True
 
-            # Injection des anchors IDs sur les sites
             for site in ai_result.get("sites", []):
                 site["anchor_id"] = slugify_anchor(site["name"])
 
@@ -458,7 +456,7 @@ def fetch_raw_data(url, status, slug):
                 "is_upcoming": False
             }
 
-    # Analyse de secours conventionnelle
+    # Fallback conventionnel
     season_overview_raw = []
     global_ops_raw = []
     ifs_raw = []
@@ -542,7 +540,7 @@ def fetch_raw_data(url, status, slug):
                         "res": res_clean
                     })
 
-    # Parsing détaillé des Villes principales (Sites)
+    # Parsing détaillé des Sites
     sites_raw = []
     site_headers = soup.find_all(re.compile(r"^h[2-4]$"), string=re.compile(r"Site:\s*([A-Za-zÀ-ÿ\s\-]+)", re.IGNORECASE))
 
@@ -679,11 +677,9 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
             "card_state": "upcoming"
         }
 
-    # Liste des sites connus pour associer les ancres
     sites_list = raw_data.get("sites", [])
     sites_map = {normalize_city_name(s["name"]).lower(): s.get("anchor_id", slugify_anchor(s["name"])) for s in sites_list}
 
-    # Préparation et tri du tableau de synthèse : Villes d'abord, Global Ops / IFS tout en bas
     city_rows = []
     global_rows = []
 
@@ -698,7 +694,6 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         res_val = row["res"]
         winner = "—"
 
-        # Calcul ou conservation du score
         if enl_val != "??" and res_val != "??":
             try:
                 e = float(enl_val.replace(",", "").replace(" ", "").replace("%", ""))
@@ -712,7 +707,6 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         else:
             winner = t["waiting"]
 
-        # Détermination du lien d'ancre
         anchor = None
         lower_name = raw_name.lower()
         if "first saturday" in lower_name:
@@ -724,12 +718,20 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
             if matched_anchor:
                 anchor = f"#site-{matched_anchor}"
 
+        # Détection précise d'une ligne avec scores en cours / en attente
+        is_pending = (
+            enl_val == "??" or res_val == "??"
+            or "???" in str(enl_val) or "???" in str(res_val)
+            or "attente" in lower_name or "pending" in lower_name
+        )
+
         entry = {
             "name": raw_name,
             "anchor": anchor,
             "enl": enl_val,
             "res": res_val,
-            "winner": winner
+            "winner": winner,
+            "is_pending": is_pending
         }
 
         if any(k in lower_name for k in ["global op", "first saturday", "connected cells"]):
@@ -737,7 +739,7 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         else:
             city_rows.append(entry)
 
-    # Récapitulatif ordonné : Villes puis Global Ops / IFS en bas
+    # Villes d'abord, puis Global Ops et IFS en fin de tableau
     season_overview_ordered = city_rows + global_rows
 
     if preset:
