@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import unicodedata
 from datetime import datetime, timezone
 import requests
 from bs4 import BeautifulSoup
@@ -100,12 +101,12 @@ HISTORICAL_SEASONS = {
         "url": "https://ingress.com/news/2025-plusbeta-results",
         "status": "archived",
         "season_overview": [
-            {"name": "+Beta Global Op", "enl": "970.2", "res": "1029.8"},
             {"name": "Site: Sendai", "enl": "163.0", "res": "137.0"},
             {"name": "Site: San Diego", "enl": "141.0", "res": "159.0"},
             {"name": "Site: Lyon", "enl": "146.0", "res": "154.0"},
             {"name": "Site: Kaohsiung", "enl": "173.0", "res": "127.0"},
-            {"name": "+Beta Connected Cells", "enl": "967.0", "res": "613.0"}
+            {"name": "+Beta Connected Cells", "enl": "967.0", "res": "613.0"},
+            {"name": "+Beta Global Op", "enl": "970.2", "res": "1029.8"}
         ],
         "enl_total": 2560.2,
         "res_total": 2219.8,
@@ -118,10 +119,10 @@ HISTORICAL_SEASONS = {
         "url": "https://ingress.com/news/2025-plusdelta-results",
         "status": "archived",
         "season_overview": [
-            {"name": "+Delta Global Op", "enl": "981.2", "res": "1018.8"},
             {"name": "Site: Kobe", "enl": "146.0", "res": "154.0"},
             {"name": "Site: Madrid", "enl": "138.0", "res": "162.0"},
-            {"name": "Site: Washington DC", "enl": "128.0", "res": "172.0"}
+            {"name": "Site: Washington DC", "enl": "128.0", "res": "172.0"},
+            {"name": "+Delta Global Op", "enl": "981.2", "res": "1018.8"}
         ],
         "enl_total": 1393.2,
         "res_total": 1306.8,
@@ -135,10 +136,10 @@ HISTORICAL_SEASONS = {
         "status": "archived",
         "season_overview": [
             {"name": "Phase 1 (Madrid, Taichung, Curitiba)", "enl": "539.0", "res": "461.0"},
-            {"name": "Phase 2 (Kinetic Challenge Op)", "enl": "49.0%", "res": "51.0% (x1.331)"},
             {"name": "Phase 3 (Bangkok, Palermo, Atlanta)", "enl": "549.0", "res": "600.0"},
-            {"name": "Phase 4 (Reclaimer Challenge Op)", "enl": "49.9%", "res": "50.1% (x1.331)"},
-            {"name": "Phase 5 (Honolulu, İzmir, Colombo)", "enl": "616.0", "res": "511.0"}
+            {"name": "Phase 5 (Honolulu, İzmir, Colombo)", "enl": "616.0", "res": "511.0"},
+            {"name": "Phase 2 (Kinetic Challenge Op)", "enl": "49.0%", "res": "51.0% (x1.331)"},
+            {"name": "Phase 4 (Reclaimer Challenge Op)", "enl": "49.9%", "res": "50.1% (x1.331)"}
         ],
         "enl_total": 1704.0,
         "res_total": 1572.0,
@@ -181,9 +182,9 @@ HISTORICAL_SEASONS = {
         "url": "https://ingress.com/news/epiphany-dawn-rules",
         "status": "archived",
         "season_overview": [
-            {"name": "Phase 1 & Connected Cells", "enl": "412.0", "res": "488.0"},
             {"name": "Phase 2 (Los Angeles, Porto)", "enl": "380.0", "res": "420.0"},
-            {"name": "Phase 3 (Yokohama)", "enl": "512.0", "res": "688.0"}
+            {"name": "Phase 3 (Yokohama)", "enl": "512.0", "res": "688.0"},
+            {"name": "Phase 1 & Connected Cells", "enl": "412.0", "res": "488.0"}
         ],
         "enl_total": 1304.0,
         "res_total": 1596.0,
@@ -223,6 +224,13 @@ def clean_text(cell):
 def normalize_city_name(name):
     clean = re.sub(r"^(?:anomaly\s*[-–—:]\s*|site\s*:\s*)", "", name, flags=re.IGNORECASE)
     return clean.strip()
+
+
+def slugify_anchor(text):
+    """Transforme un nom de ville en identifiant d'ancre HTML valide."""
+    norm = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    norm = re.sub(r"[^\w\s-]", "", norm).strip().lower()
+    return re.sub(r"[-\s]+", "-", norm)
 
 
 def get_slug_sort_score(slug):
@@ -433,9 +441,12 @@ def fetch_raw_data(url, status, slug):
                 item["enl"] == "??" or item["res"] == "??" or "en attente" in item["name"].lower()
                 for item in ai_result["season_overview"]
             )
-            # Vérification dans IFS
             if any("???" in str(i.get("enl", "")) or "???" in str(i.get("res", "")) for i in ai_result.get("ifs", [])):
                 has_pending = True
+
+            # Injection des anchors IDs sur les sites
+            for site in ai_result.get("sites", []):
+                site["anchor_id"] = slugify_anchor(site["name"])
 
             return {
                 "banner": banner,
@@ -447,7 +458,7 @@ def fetch_raw_data(url, status, slug):
                 "is_upcoming": False
             }
 
-    # Analyse de secours conventionnelle (Fallback BS4)
+    # Analyse de secours conventionnelle
     season_overview_raw = []
     global_ops_raw = []
     ifs_raw = []
@@ -544,6 +555,7 @@ def fetch_raw_data(url, status, slug):
 
         site_dict = {
             "name": site_name,
+            "anchor_id": slugify_anchor(norm_site),
             "enl_pts": "??",
             "res_pts": "??",
             "stealth_ops": {"enl": "0.0", "res": "0.0"},
@@ -667,43 +679,69 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
             "card_state": "upcoming"
         }
 
-    season_overview = []
-    preset = raw_data.get("preset_totals")
-    if preset:
-        enl_sum, res_sum = preset
-        for row in raw_data["season_overview"]:
-            season_overview.append({
-                "name": row["name"],
-                "enl": row["enl"],
-                "res": row["res"],
-                "winner": "—"
-            })
-    else:
-        enl_sum = 0.0
-        res_sum = 0.0
-        for row in raw_data["season_overview"]:
-            enl_val = row["enl"]
-            res_val = row["res"]
-            winner = "—"
+    # Liste des sites connus pour associer les ancres
+    sites_list = raw_data.get("sites", [])
+    sites_map = {normalize_city_name(s["name"]).lower(): s.get("anchor_id", slugify_anchor(s["name"])) for s in sites_list}
 
-            if enl_val != "??" and res_val != "??":
-                try:
-                    e = float(enl_val.replace(",", "").replace(" ", ""))
-                    r = float(res_val.replace(",", "").replace(" ", ""))
+    # Préparation et tri du tableau de synthèse : Villes d'abord, Global Ops / IFS tout en bas
+    city_rows = []
+    global_rows = []
+
+    preset = raw_data.get("preset_totals")
+    enl_sum = 0.0
+    res_sum = 0.0
+
+    for row in raw_data["season_overview"]:
+        raw_name = row["name"]
+        norm_name = normalize_city_name(raw_name)
+        enl_val = row["enl"]
+        res_val = row["res"]
+        winner = "—"
+
+        # Calcul ou conservation du score
+        if enl_val != "??" and res_val != "??":
+            try:
+                e = float(enl_val.replace(",", "").replace(" ", "").replace("%", ""))
+                r = float(res_val.replace(",", "").replace(" ", "").replace("%", ""))
+                if not preset:
                     enl_sum += e
                     res_sum += r
-                    winner = "🟢 ENL" if e > r else ("🔵 RES" if r > e else t["tie"])
-                except ValueError:
-                    pass
-            else:
-                winner = t["waiting"]
+                winner = "🟢 ENL" if e > r else ("🔵 RES" if r > e else t["tie"])
+            except ValueError:
+                pass
+        else:
+            winner = t["waiting"]
 
-            season_overview.append({
-                "name": row["name"],
-                "enl": enl_val,
-                "res": res_val,
-                "winner": winner
-            })
+        # Détermination du lien d'ancre
+        anchor = None
+        lower_name = raw_name.lower()
+        if "first saturday" in lower_name:
+            anchor = "#ifs"
+        elif "global op" in lower_name or "connected cells" in lower_name:
+            anchor = "#global-ops"
+        else:
+            matched_anchor = sites_map.get(norm_name.lower())
+            if matched_anchor:
+                anchor = f"#site-{matched_anchor}"
+
+        entry = {
+            "name": raw_name,
+            "anchor": anchor,
+            "enl": enl_val,
+            "res": res_val,
+            "winner": winner
+        }
+
+        if any(k in lower_name for k in ["global op", "first saturday", "connected cells"]):
+            global_rows.append(entry)
+        else:
+            city_rows.append(entry)
+
+    # Récapitulatif ordonné : Villes puis Global Ops / IFS en bas
+    season_overview_ordered = city_rows + global_rows
+
+    if preset:
+        enl_sum, res_sum = preset
 
     enl_sum = round(enl_sum, 1)
     res_sum = round(res_sum, 1)
@@ -731,8 +769,8 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         enl_total=enl_sum,
         res_total=res_sum,
         diff=diff,
-        season_overview=season_overview,
-        sites=raw_data.get("sites", []),
+        season_overview=season_overview_ordered,
+        sites=sites_list,
         global_ops=raw_data.get("global_ops", []),
         ifs=raw_data.get("ifs", [])
     )
