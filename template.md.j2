@@ -10,7 +10,7 @@
 | {{ t.col_event }} | {{ t.col_enl }} | {{ t.col_res }} | {{ t.col_winner }} |
 | :--- | :---: | :---: | :---: |
 {% for row in season_overview -%}
-| **{{ row.name }}** | {{ row.enl }} | {{ row.res }} | {{ row.winner }} |
+| {% if row.anchor %}[**{{ row.name }}**]({{ row.anchor }}){% else %}**{{ row.name }}**{% endif %} | {{ row.enl }} | {{ row.res }} | {{ row.winner }} |
 {% endfor %}
 | **{{ t.total_partial }}** | **{{ enl_total }}** | **{{ res_total }}** | **{% if diff > 0 %}🔵 RES (+{{ diff }}){% elif diff < 0 %}🟢 ENL (+{{ -diff }}){% else %}{{ t.tie }}{% endif %}** |
 
@@ -20,6 +20,8 @@
 ## {{ t.city_results }}
 
 {% for site in sites %}
+<div id="site-{{ site.anchor_id }}" class="site-section"></div>
+
 ### 📍 {{ site.name }}
 - **{{ t.total_site }}** : 🟢 **{{ site.enl_pts }}** — 🔵 **{{ site.res_pts }}**
 
@@ -37,6 +39,8 @@
 {% if global_ops and global_ops|length > 0 %}
 ---
 
+<div id="global-ops" class="site-section"></div>
+
 ## 🌐 {{ t.global_ops_title }}
 
 | {{ t.col_event }} | {{ t.col_enl }} | {{ t.col_res }} |
@@ -48,6 +52,8 @@
 
 {% if ifs and ifs|length > 0 %}
 ---
+
+<div id="ifs" class="site-section"></div>
 
 ## ☕ {{ t.ifs_title }}
 
