@@ -15,7 +15,8 @@
       line-height: 1.6;
       max-width: 960px;
       margin: 0 auto;
-      padding: 2rem 1.5rem;
+      padding: 2rem 1.5rem 4rem;
+      position: relative;
     }
     .top-nav {
       display: flex;
@@ -146,9 +147,44 @@
       font-weight: bold;
       border-top: 2px solid rgba(255, 255, 255, 0.15);
     }
+
+    /* Bouton flottant retour en haut */
+    #btn-back-to-top {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #334155;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+      z-index: 100;
+    }
+    #btn-back-to-top.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    #btn-back-to-top:hover {
+      background: #00bbff;
+      color: #0b0f19;
+      border-color: #00bbff;
+      transform: translateY(-3px);
+    }
   </style>
 </head>
 <body>
+  <div id="page-top"></div>
+
   <div class="top-nav">
     <div class="nav-left">
       <a href="index.html" class="back">{{ t.back }}</a>
@@ -165,7 +201,11 @@
 
   {{ content }}
 
+  <!-- Bouton de retour en haut -->
+  <button id="btn-back-to-top" title="Haut de page" aria-label="Haut de page">↑</button>
+
   <script>
+    // 1. Formatage de toutes les balises <time class="local-date">
     document.querySelectorAll('.local-date').forEach(el => {
       const isoString = el.getAttribute('datetime') || el.textContent.trim();
       if (isoString) {
@@ -175,6 +215,38 @@
             dateStyle: 'short',
             timeStyle: 'medium'
           });
+        }
+      }
+    });
+
+    // 2. Gestion du bouton retour en haut
+    const btnTop = document.getElementById('btn-back-to-top');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        btnTop.classList.add('visible');
+      } else {
+        btnTop.classList.remove('visible');
+      }
+    });
+
+    btnTop.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Nettoie l'ancre dans l'URL sans recharger la page
+      if (window.location.hash) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    });
+
+    // 3. Forcer le démarrage en haut de page lors d'un rechargement (F5)
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.addEventListener('load', () => {
+      if (window.performance && performance.navigation && performance.navigation.type === 1) {
+        // En cas de F5 / Reload, on revient en haut et on retire l'ancre
+        window.scrollTo(0, 0);
+        if (window.location.hash) {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
         }
       }
     });
