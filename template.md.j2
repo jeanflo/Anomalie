@@ -20,15 +20,40 @@
 ## {{ t.city_results }}
 
 {% for site in sites %}
-### {{ site.name }}
-- **{{ t.total_site }}** : 🟢 {{ site.enl_pts }} — 🔵 {{ site.res_pts }}
+### 📍 {{ site.name }}
+- **{{ t.total_site }}** : 🟢 **{{ site.enl_pts }}** — 🔵 **{{ site.res_pts }}**
 
 | {{ t.col_category }} | {{ t.col_enl }} | {{ t.col_res }} |
 | :--- | :---: | :---: |
-| Special Ops | {{ site.special_ops.enl }} | {{ site.special_ops.res }} |
-| Shard Battle | {{ site.shards.enl }} | {{ site.shards.res }} |
-| Beacon Battle | {{ site.beacons.enl }} | {{ site.beacons.res }} |
-| Anomaly Uniques | {{ site.uniques.enl }} | {{ site.uniques.res }} |
+| 🥷 Stealth Ops | {{ site.stealth_ops.enl }} | {{ site.stealth_ops.res }} |
+| 🏙️ Urban Ops | {{ site.urban_ops.enl }} | {{ site.urban_ops.res }} |
+| 💎 Shard Battle | {{ site.shards.enl }} | {{ site.shards.res }} |
+| 📡 Beacon Battle | {{ site.beacons.enl }} | {{ site.beacons.res }} |
+| 🧭 Anomaly Uniques | {{ site.uniques.enl }} | {{ site.uniques.res }} |
 
+{% endfor %}
+{% endif %}
+
+{% if global_ops and global_ops|length > 0 %}
+---
+
+## 🌐 {{ t.global_ops_title }}
+
+| {{ t.col_event }} | {{ t.col_enl }} | {{ t.col_res }} |
+| :--- | :---: | :---: |
+{% for op in global_ops -%}
+| {{ op.event }} | {{ op.enl }} | {{ op.res }} |
+{% endfor %}
+{% endif %}
+
+{% if ifs and ifs|length > 0 %}
+---
+
+## ☕ {{ t.ifs_title }}
+
+| Phase / Mois | {{ t.col_enl }} | {{ t.col_res }} |
+| :--- | :---: | :---: |
+{% for item in ifs -%}
+| **{{ item.phase }}** | {{ item.enl }} | {{ item.res }} |
 {% endfor %}
 {% endif %}
