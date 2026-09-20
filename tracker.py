@@ -718,7 +718,6 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
             if matched_anchor:
                 anchor = f"#site-{matched_anchor}"
 
-        # Détection précise d'une ligne avec scores en cours / en attente
         is_pending = (
             enl_val == "??" or res_val == "??"
             or "???" in str(enl_val) or "???" in str(res_val)
@@ -739,7 +738,7 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         else:
             city_rows.append(entry)
 
-    # Villes d'abord, puis Global Ops et IFS en fin de tableau
+    # Villes d'abord, puis Global Ops et IFS en bas
     season_overview_ordered = city_rows + global_rows
 
     if preset:
