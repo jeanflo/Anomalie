@@ -7,12 +7,41 @@
 
 ## {{ t.season_overview }}
 
-| {{ t.col_event }} | {{ t.col_enl }} | {{ t.col_res }} | {{ t.col_winner }} |
-| :--- | :---: | :---: | :---: |
-{% for row in season_overview -%}
-| {% if row.anchor %}[**{{ row.name }}**]({{ row.anchor }}){% else %}**{{ row.name }}**{% endif %} | {{ row.enl }} | {{ row.res }} | {{ row.winner }} |
-{% endfor %}
-| **{{ t.total_partial }}** | **{{ enl_total }}** | **{{ res_total }}** | **{% if diff > 0 %}🔵 RES (+{{ diff }}){% elif diff < 0 %}🟢 ENL (+{{ -diff }}){% else %}{{ t.tie }}{% endif %}** |
+<table class="overview-table">
+  <thead>
+    <tr>
+      <th>{{ t.col_event }}</th>
+      <th>{{ t.col_enl }}</th>
+      <th>{{ t.col_res }}</th>
+      <th>{{ t.col_winner }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in season_overview %}
+    <tr class="{% if row.is_pending %}row-pending{% endif %}">
+      <td>
+        {% if row.anchor %}
+          <a href="{{ row.anchor }}"><strong>{{ row.name }}</strong></a>
+        {% else %}
+          <strong>{{ row.name }}</strong>
+        {% endif %}
+        {% if row.is_pending %}
+          <span class="badge-pending-mini">LIVE</span>
+        {% endif %}
+      </td>
+      <td>{{ row.enl }}</td>
+      <td>{{ row.res }}</td>
+      <td>{{ row.winner }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="row-total">
+      <td><strong>{{ t.total_partial }}</strong></td>
+      <td><strong>{{ enl_total }}</strong></td>
+      <td><strong>{{ res_total }}</strong></td>
+      <td><strong>{% if diff > 0 %}🔵 RES (+{{ diff }}){% elif diff < 0 %}🟢 ENL (+{{ -diff }}){% else %}{{ t.tie }}{% endif %}</strong></td>
+    </tr>
+  </tbody>
+</table>
 
 {% if sites and sites|length > 0 %}
 ---
