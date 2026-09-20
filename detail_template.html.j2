@@ -100,20 +100,20 @@
     }
     hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 2.5rem 0; }
 
-    /* Lignes en attente / en direct */
+    /* Lignes en attente / en direct (tous tableaux confondus) */
     tr.row-pending {
       background: rgba(239, 68, 68, 0.12) !important;
     }
     tr.row-pending td {
-      border-top: 1px solid rgba(239, 68, 68, 0.4);
-      border-bottom: 1px solid rgba(239, 68, 68, 0.4);
-      color: #fca5a5;
+      border-top: 1px solid rgba(239, 68, 68, 0.4) !important;
+      border-bottom: 1px solid rgba(239, 68, 68, 0.4) !important;
+      color: #fca5a5 !important;
     }
     tr.row-pending td:first-child {
-      border-left: 3px solid #ef4444;
+      border-left: 3px solid #ef4444 !important;
     }
     tr.row-pending td:last-child {
-      border-right: 1px solid rgba(239, 68, 68, 0.4);
+      border-right: 1px solid rgba(239, 68, 68, 0.4) !important;
     }
     tr.row-pending a {
       color: #f87171 !important;
@@ -219,7 +219,30 @@
       }
     });
 
-    // 2. Gestion du bouton retour en haut
+    // 2. Détection automatique des scores en attente (??, ???, TBD) sur TOUS les tableaux
+    document.querySelectorAll('table tbody tr, table tr').forEach(row => {
+      if (row.querySelector('th')) return;
+
+      const cells = Array.from(row.querySelectorAll('td'));
+      const hasPendingScore = cells.some(td => {
+        const txt = td.textContent.trim();
+        return txt === '??' || txt === '???' || txt.toLowerCase() === 'tbd';
+      });
+
+      if (hasPendingScore && !row.classList.contains('row-pending')) {
+        row.classList.add('row-pending');
+        
+        const firstCell = cells[0];
+        if (firstCell && !firstCell.querySelector('.badge-pending-mini')) {
+          const badge = document.createElement('span');
+          badge.className = 'badge-pending-mini';
+          badge.textContent = 'LIVE';
+          firstCell.appendChild(badge);
+        }
+      }
+    });
+
+    // 3. Gestion du bouton retour en haut
     const btnTop = document.getElementById('btn-back-to-top');
     window.addEventListener('scroll', () => {
       if (window.scrollY > 300) {
@@ -231,19 +254,17 @@
 
     btnTop.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      // Nettoie l'ancre dans l'URL sans recharger la page
       if (window.location.hash) {
         history.replaceState(null, '', window.location.pathname + window.location.search);
       }
     });
 
-    // 3. Forcer le démarrage en haut de page lors d'un rechargement (F5)
+    // 4. Forcer le démarrage en haut de page lors d'un rechargement (F5)
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
     window.addEventListener('load', () => {
       if (window.performance && performance.navigation && performance.navigation.type === 1) {
-        // En cas de F5 / Reload, on revient en haut et on retire l'ancre
         window.scrollTo(0, 0);
         if (window.location.hash) {
           history.replaceState(null, '', window.location.pathname + window.location.search);
