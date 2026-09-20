@@ -227,7 +227,7 @@ def parse_with_gemini(html_content):
 Tu es un extracteur d'informations expert pour le jeu Ingress Anomaly.
 Analyse le code HTML brut officiel de Niantic et extrais avec précision les points de saison (Season Points).
 
-Retourne UNIQUEMENT un objet JSON valide qui respecte exactement cette structure :
+Retourne UNIQUEMENT un objet JSON valide respectant scrupuleusement ce format :
 {
   "season_overview": [
     {"name": "Nom de l'épreuve/ville (ex: Singapore, Paris, Seoul, Bogotá, Helsinki, Denver, Global Op, First Saturday)", "enl": "score ou ??", "res": "score ou ??"}
@@ -249,6 +249,8 @@ Consignes strictes :
 - N'extrais JAMAIS les AP ou battle points bruts (ex: 37,287,327). Prends EXCLUSIVEMENT les Season Points (ex: 981.4 / 1018.6).
 - Si une épreuve est marquée (Cancelled), les points valent 0.0.
 - Si une ville ou une épreuve n'est pas encore complétée (?? ou TBD), indique "??" sans inventer de valeur.
+- Pour les épreuves composées de plusieurs mois (comme First Saturday avec July, August, September) :
+  si un des mois contient "???" ou est en attente, nomme l'événement "First Saturday (Sept. en attente)" et garde le score partiel cumulé actuel.
 - Dans "sites", ne mets que les villes majeures, pas les doublons.
 """
 
@@ -280,7 +282,6 @@ Consignes strictes :
 
 
 def discover_anomaly_seasons(max_pages=3):
-    """Détection souple des articles d'anomalies sur /news (Méthode 3)."""
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
     discovered = {}
 
@@ -298,7 +299,6 @@ def discover_anomaly_seasons(max_pages=3):
                 title_lower = clean_text(a).lower()
                 href_lower = href.lower()
 
-                # Vérifie la présence des mots-clés dans le lien OU le texte du lien
                 has_anomaly = "anomaly" in title_lower or "anomaly" in href_lower
                 has_results = any(k in title_lower or k in href_lower for k in ["result", "score"])
                 has_overview = any(k in title_lower or k in href_lower for k in ["overview", "schedule", "rule"])
@@ -309,17 +309,14 @@ def discover_anomaly_seasons(max_pages=3):
                 if not (is_results or is_overview):
                     continue
 
-                # Extraction propre du slug
                 match_slug = re.search(r"/news/([^/?#]+)", href)
                 if not match_slug:
                     continue
 
                 raw_slug = match_slug.group(1)
-                # Exclusion des articles techniques satellites
                 if any(bad in raw_slug.lower() for bad in ["anomalysites", "guidelines", "faq", "instability"]):
                     continue
 
-                # Nettoyage du suffixe
                 slug = re.sub(r"-(?:results|overview|rules|schedule)$", "", raw_slug, flags=re.IGNORECASE)
 
                 full_url = href if href.startswith("http") else f"https://ingress.com{href}"
@@ -346,7 +343,6 @@ def discover_anomaly_seasons(max_pages=3):
             print(f"Erreur sur la page {page} : {e}")
             break
 
-    # Intégration des archives validées
     for h_slug, h_data in HISTORICAL_SEASONS.items():
         discovered[h_slug] = h_data
 
@@ -398,7 +394,10 @@ def fetch_raw_data(url, status, slug):
         ai_result = parse_with_gemini(html_text)
         if ai_result and "season_overview" in ai_result and ai_result["season_overview"]:
             print(f"Extraction IA validée pour {slug} !")
-            has_pending = any(item["enl"] == "??" or item["res"] == "??" for item in ai_result["season_overview"])
+            has_pending = any(
+                item["enl"] == "??" or item["res"] == "??" or "en attente" in item["name"].lower()
+                for item in ai_result["season_overview"]
+            )
             return {
                 "banner": banner,
                 "season_overview": ai_result["season_overview"],
@@ -439,20 +438,50 @@ def fetch_raw_data(url, status, slug):
                         })
 
         elif len(headers_text) >= 3 and ("event" in headers_text[0] or "events" in headers_text[0]):
+            table_has_pending = False
+            pending_subdetail = ""
+            total_row = None
+
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
                 if len(cols) >= 3:
-                    row_name = cols[0].strip()
-                    if any(k in row_name.lower() for k in ["total", "season points total"]):
-                        event_title = "Global Op" if "global op" in row_name.lower() else ("First Saturday" if "first saturday" in row_name.lower() else row_name)
-                        enl_v = cols[1].replace(",", "").strip()
-                        res_v = cols[2].replace(",", "").strip()
-                        if not any(item["name"].lower() == event_title.lower() for item in season_overview_raw):
-                            season_overview_raw.append({
-                                "name": event_title,
-                                "enl": enl_v,
-                                "res": res_v
-                            })
+                    row_label = cols[0].strip()
+                    val_enl = cols[1].strip()
+                    val_res = cols[2].strip()
+
+                    # Détection d'un mois / phase en attente (ex: Number of Participants in September ??? ???)
+                    if "??" in val_enl or "??" in val_res or "tbd" in val_enl.lower():
+                        table_has_pending = True
+                        has_pending_scores = True
+                        if "september" in row_label.lower():
+                            pending_subdetail = "Sept. en attente"
+                        elif "august" in row_label.lower():
+                            pending_subdetail = "Août en attente"
+                        elif "july" in row_label.lower():
+                            pending_subdetail = "Juil. en attente"
+
+                    if any(k in row_label.lower() for k in ["total", "season points total"]):
+                        total_row = (row_label, val_enl, val_res)
+
+            if total_row:
+                row_label, enl_v, res_v = total_row
+                event_title = "Global Op" if "global op" in row_label.lower() else ("First Saturday" if "first saturday" in row_label.lower() else row_label)
+                
+                enl_clean = enl_v.replace(",", "").strip()
+                res_clean = res_v.replace(",", "").strip()
+
+                if table_has_pending:
+                    suffix = pending_subdetail if pending_subdetail else "en attente"
+                    display_title = f"{event_title} ({suffix})"
+                else:
+                    display_title = event_title
+
+                if not any(item["name"].lower() == display_title.lower() for item in season_overview_raw):
+                    season_overview_raw.append({
+                        "name": display_title,
+                        "enl": enl_clean,
+                        "res": res_clean
+                    })
 
     sites_raw = []
     site_headers = soup.find_all(re.compile(r"^h[2-4]$"), string=re.compile(r"Site:\s*([A-Za-zÀ-ÿ\s\-]+)", re.IGNORECASE))
