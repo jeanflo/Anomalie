@@ -95,6 +95,26 @@ TRANSLATIONS = {
 }
 
 HISTORICAL_SEASONS = {
+    "2026-plusgamma": {
+        "title": {"fr": "+Gamma (2026)", "en": "+Gamma (2026)"},
+        "url": "https://ingress.com/news/2026-plusgamma-results",
+        "status": "archived",
+        "season_overview": [
+            {"name": "Lisbon", "enl": "168.0", "res": "132.0"},
+            {"name": "Charlotte", "enl": "176.6", "res": "123.4"},
+            {"name": "Hong Kong", "enl": "165.0", "res": "135.0"},
+            {"name": "Zagreb", "enl": "170.0", "res": "130.0"},
+            {"name": "Hyderabad", "enl": "165.4", "res": "134.6"},
+            {"name": "Buenos Aires", "enl": "170.0", "res": "130.0"},
+            {"name": "+Gamma Global Op", "enl": "487.8", "res": "512.2"},
+            {"name": "First Saturday", "enl": "300.0", "res": "300.0"}
+        ],
+        "enl_total": 1802.8,
+        "res_total": 1597.2,
+        "sites": [],
+        "global_ops": [],
+        "ifs": []
+    },
     "2025-plusbeta": {
         "title": {"fr": "+Beta (2025)", "en": "+Beta (2025)"},
         "url": "https://ingress.com/news/2025-plusbeta-results",
@@ -252,23 +272,21 @@ def parse_with_gemini(html_content):
 
         prompt = """
 Tu es un extracteur d'informations expert pour le jeu Ingress Anomaly.
-Analyse le code HTML fourni par Niantic et produis une synthèse rigoureuse et complète.
+Analyse le code HTML fourni par Niantic et produis une synthèse rigoureuse et exhaustive.
 
-Consignes impératives d'extraction :
-1. DANS "season_overview" : 
-   - Isole et liste CHAQUE VILLE INDIVIDUELLE (ex: Lisbon, Charlotte, Hong Kong, Zagreb, Hyderabad, Buenos Aires, Denver, Singapore, Paris, Seoul, etc.) avec ses Season Points finaux.
-   - NE METS JAMAIS de dates de vagues dans la liste (INTERDIT absolu : 'February 28 Anomaly', 'March 14 Anomaly', 'August 22 Anomaly', 'Total Points', 'Season Points Total').
-   - Inclus aussi les totaux pour "First Saturday" et "Global Op".
-2. DANS "sites" :
-   - Crée une entrée pour chaque ville individuelle avec : Stealth Ops, Urban Ops, Shard Battle, Beacon Battle, Anomaly Uniques.
-   - Si une discipline est marquée (Cancelled), ses points valent 0.0.
-   - Ne mets "??" QUE si l'épreuve est explicitement non jouée ou notée "??", "???", "TBD".
-3. DANS "global_ops" :
-   - Détaille les sous-épreuves globales ou le score total de la Global Op.
-4. DANS "ifs" :
-   - Extrais les mois (July, August, September) et la ligne Total Season Points.
+Consignes impératives :
+1. "season_overview" : 
+   - Isole chaque ville individuelle avec son nom propre (ex: Denver, Singapore, Paris, Seoul, Lisbon, Charlotte, Hong Kong, Zagreb, Hyderabad, Buenos Aires, etc.) et ses Season Points.
+   - Ne mets AUCUN libellé de vague (ex: 'February 28 Anomaly', 'March 14 Anomaly', 'August 22 Anomaly', 'Total Points', 'Season Points Total' sont STRICTEMENT INTERDITS).
+   - Inclus aussi "First Saturday" et "Global Op".
+2. "sites" :
+   - Pour chaque ville, extrais : stealth_ops, urban_ops, shards, beacons, uniques.
+   - Si marqué (Cancelled), mets 0.0.
+   - Ne mets "??" que si l'épreuve n'a pas encore eu lieu ou affiche explicitement "TBD" ou "???".
+3. "global_ops" : détaille chaque ligne d'opération globale.
+4. "ifs" : détaille les mois et le total.
 
-Retourne STRICTEMENT cet objet JSON valide :
+Retourne UNIQUEMENT du JSON valide :
 {
   "season_overview": [
     {"name": "Nom ville ou Global Op ou First Saturday", "enl": "score ou ??", "res": "score ou ??"}
@@ -317,7 +335,7 @@ Retourne STRICTEMENT cet objet JSON valide :
 
         return None
     except Exception as e:
-        print(f"Extraction IA non disponible (repli sur analyse classique) : {e}")
+        print(f"Extraction IA non disponible : {e}")
         return None
 
 
@@ -390,6 +408,19 @@ def discover_anomaly_seasons(max_pages=3):
 
 
 def fetch_raw_data(url, status, slug):
+    if slug in HISTORICAL_SEASONS:
+        hist = HISTORICAL_SEASONS[slug]
+        return {
+            "banner": "https://placehold.co/600x300/141c2e/FFF?text=+Gamma",
+            "season_overview": hist["season_overview"],
+            "sites": hist.get("sites", []),
+            "global_ops": hist.get("global_ops", []),
+            "ifs": hist.get("ifs", []),
+            "has_pending_scores": False,
+            "is_upcoming": False,
+            "preset_totals": (hist["enl_total"], hist["res_total"])
+        }
+
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
     banner = "https://placehold.co/600x300/141c2e/FFF?text=Anomaly"
 
@@ -409,19 +440,6 @@ def fetch_raw_data(url, status, slug):
         html_text = ""
         soup = BeautifulSoup("", "html.parser")
 
-    if slug in HISTORICAL_SEASONS:
-        hist = HISTORICAL_SEASONS[slug]
-        return {
-            "banner": banner,
-            "season_overview": hist["season_overview"],
-            "sites": hist.get("sites", []),
-            "global_ops": hist.get("global_ops", []),
-            "ifs": hist.get("ifs", []),
-            "has_pending_scores": False,
-            "is_upcoming": False,
-            "preset_totals": (hist["enl_total"], hist["res_total"])
-        }
-
     if status == "upcoming":
         return {
             "banner": banner,
@@ -434,10 +452,9 @@ def fetch_raw_data(url, status, slug):
         }
 
     if os.getenv("GEMINI_API_KEY") and html_text:
-        print(f"Analyse IA structurée avec Gemini pour {slug}...")
+        print(f"Analyse IA Gemini pour {slug}...")
         ai_result = parse_with_gemini(html_text)
         if ai_result and "season_overview" in ai_result and ai_result["season_overview"]:
-            print(f"Extraction IA validée pour {slug} !")
             has_pending = any(
                 item.get("enl") in ["??", "???"] or item.get("res") in ["??", "???"] or "en attente" in str(item.get("name", "")).lower()
                 for item in ai_result["season_overview"]
@@ -455,26 +472,24 @@ def fetch_raw_data(url, status, slug):
                 "is_upcoming": False
             }
 
-    # Secours : analyse conventionnelle BeautifulSoup
     season_overview_raw = []
     global_ops_raw = []
     ifs_raw = []
     has_pending_scores = False
 
+    # Collecte conventionnelle
     for table in soup.find_all("table"):
         header_row = table.find("tr")
         if not header_row:
             continue
         headers_text = [clean_text(th).lower() for th in header_row.find_all(["th", "td"])]
 
-        # Détection des tableaux de sites (qu'ils soient regroupés ou divisés par date)
         if len(headers_text) >= 3 and any("site" in h for h in headers_text[:2]) and any("enlightened" in h for h in headers_text) and any("resistance" in h for h in headers_text):
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
                 if len(cols) >= 3:
                     name_raw = cols[0].strip()
-                    # Exclusion stricte des libellés de sous-totaux ou de dates
-                    if any(bad in name_raw.lower() for bad in ["season points", "total points", "total", "anomaly", ""]):
+                    if any(bad in name_raw.lower() for bad in ["season points", "total points", "total", ""]):
                         continue
                     enl_v = cols[1].strip()
                     res_v = cols[2].strip()
@@ -492,11 +507,9 @@ def fetch_raw_data(url, status, slug):
                             "res": res_v
                         })
 
-        # Tableaux First Saturday & Global Ops
         elif len(headers_text) >= 3 and ("event" in headers_text[0] or "events" in headers_text[0]):
             table_text = table.get_text().lower()
             is_fs_table = "first saturday" in table_text or "participants" in table_text
-
             table_has_pending = False
             pending_label = ""
             total_row = None
@@ -541,7 +554,6 @@ def fetch_raw_data(url, status, slug):
                         "res": res_clean
                     })
 
-    # Parsing détaillé des sites
     sites_raw = []
     site_headers = soup.find_all(re.compile(r"^h[2-4]$"), string=re.compile(r"Site:\s*([A-Za-zÀ-ÿ\s\-]+)", re.IGNORECASE))
 
@@ -809,13 +821,14 @@ def main():
 
     sorted_slugs = sorted(scraped_data.keys(), key=get_slug_sort_score)
 
-    # Détection stricte : live UNIQUEMENT si une saison a encore des scores partiels ou '??'
+    # Détection stricte du live : une saison archivée ne peut pas redevenir live
     active_slug = None
     for s_slug in sorted_slugs:
         info = seasons.get(s_slug, {})
-        if info.get("status") != "upcoming" and scraped_data[s_slug].get("has_pending_scores"):
-            active_slug = s_slug
-            break
+        if info.get("status") != "upcoming" and info.get("status") != "archived":
+            if scraped_data[s_slug].get("has_pending_scores"):
+                active_slug = s_slug
+                break
 
     for lang in ["fr", "en"]:
         t = TRANSLATIONS[lang]
