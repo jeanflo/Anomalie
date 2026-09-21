@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import requests
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
-import markdown
 
 NEWS_URL = "https://ingress.com/news"
 OUTPUT_DIR = "public"
@@ -129,10 +128,10 @@ HISTORICAL_SEASONS = {
         "status": "archived",
         "season_overview": [
             {"name": "+Beta Global Op", "enl": "970.2", "res": "1029.8"},
-            {"name": "Site: Sendai", "enl": "163.0", "res": "137.0"},
-            {"name": "Site: San Diego", "enl": "141.0", "res": "159.0"},
-            {"name": "Site: Lyon", "enl": "146.0", "res": "154.0"},
-            {"name": "Site: Kaohsiung", "enl": "173.0", "res": "127.0"},
+            {"name": "Sendai", "enl": "163.0", "res": "137.0"},
+            {"name": "San Diego", "enl": "141.0", "res": "159.0"},
+            {"name": "Lyon", "enl": "146.0", "res": "154.0"},
+            {"name": "Kaohsiung", "enl": "173.0", "res": "127.0"},
             {"name": "+Beta Connected Cells", "enl": "967.0", "res": "613.0"}
         ],
         "enl_total": 2560.2,
@@ -147,9 +146,9 @@ HISTORICAL_SEASONS = {
         "status": "archived",
         "season_overview": [
             {"name": "+Delta Global Op", "enl": "981.2", "res": "1018.8"},
-            {"name": "Site: Kobe", "enl": "146.0", "res": "154.0"},
-            {"name": "Site: Madrid", "enl": "138.0", "res": "162.0"},
-            {"name": "Site: Washington DC", "enl": "128.0", "res": "172.0"}
+            {"name": "Kobe", "enl": "146.0", "res": "154.0"},
+            {"name": "Madrid", "enl": "138.0", "res": "162.0"},
+            {"name": "Washington DC", "enl": "128.0", "res": "172.0"}
         ],
         "enl_total": 1393.2,
         "res_total": 1306.8,
@@ -280,21 +279,19 @@ def parse_with_gemini(html_content):
 
         prompt = """
 Tu es un extracteur d'informations expert pour le jeu Ingress Anomaly.
-Analyse le code HTML fourni par Niantic et produis une synthèse rigoureuse et exhaustive.
+Analyse le code HTML brut de Niantic et extrais la synthèse complète de la saison.
 
 Consignes impératives :
 1. "season_overview" : 
-   - Isole chaque ville individuelle avec son nom propre (ex: Denver, Singapore, Paris, Seoul, Sydney, Prague, Kure City, Lisbon, Charlotte, Hong Kong, Zagreb, Hyderabad, Buenos Aires, etc.) et ses Season Points.
-   - Ne mets AUCUN libellé de date ou de sous-total (ex: 'February 28 Anomaly', 'March 14 Anomaly', 'August 22 Anomaly', 'Total Points', 'Season Points Total' sont STRICTEMENT INTERDITS).
-   - Inclus aussi "First Saturday" et "Global Op".
-2. "sites" :
-   - Pour chaque ville, extrais : stealth_ops, urban_ops, shards, beacons, uniques.
-   - Si marqué (Cancelled), mets 0.0.
-   - Ne mets "??" que si l'épreuve n'a pas encore eu lieu ou affiche explicitement "TBD" ou "???".
-3. "global_ops" : détaille chaque ligne d'opération globale.
-4. "ifs" : détaille les mois et le total.
+   - Isole chaque ville individuelle avec son nom propre (ex: Denver, Singapore, Paris, Seoul, Sydney, Prague, Kure City, Jersey City, Geneva, Lima, Lisbon, Charlotte, Hong Kong, Zagreb, Hyderabad, Buenos Aires, etc.) et ses Season Points.
+   - NE PLACE JAMAIS les villes dans "global_ops". Les villes appartiennent UNIQUEMENT à la liste principale des villes !
+   - Ne mets AUCUN libellé de sous-total (ex: 'Total Points', 'Season Points Total', 'Total').
+   - Inclus les totaux de "First Saturday" et "Global Op".
+2. "sites" : pour chaque ville, extrais : stealth_ops, urban_ops, shards, beacons, uniques. Si (Cancelled), points = 0.0.
+3. "global_ops" : détaille UNIQUEMENT les challenges globaux (ex: Link & Field, Global Op, Connected Cells).
+4. "ifs" : détaille les mois et le total de First Saturday.
 
-Retourne UNIQUEMENT du JSON valide :
+Retourne STRICTEMENT cet objet JSON valide :
 {
   "season_overview": [
     {"name": "Nom ville ou Global Op ou First Saturday", "enl": "score ou ??", "res": "score ou ??"}
@@ -304,15 +301,15 @@ Retourne UNIQUEMENT du JSON valide :
       "name": "Nom de la ville",
       "enl_pts": "score total du site ou ??",
       "res_pts": "score total du site ou ??",
-      "stealth_ops": {"enl": "score ou 0.0", "res": "score ou 0.0"},
-      "urban_ops": {"enl": "score ou 0.0", "res": "score ou 0.0"},
+      "stealth_ops": {"enl": "0.0", "res": "0.0"},
+      "urban_ops": {"enl": "0.0", "res": "0.0"},
       "shards": {"enl": "score ou ??", "res": "score ou ??"},
       "beacons": {"enl": "score ou ??", "res": "score ou ??"},
       "uniques": {"enl": "score ou ??", "res": "score ou ??"}
     }
   ],
   "global_ops": [
-    {"event": "Nom épreuve", "enl": "score", "res": "score"}
+    {"event": "Nom du challenge mondial", "enl": "score", "res": "score"}
   ],
   "ifs": [
     {"phase": "Mois ou Total", "enl": "score ou ???", "res": "score ou ???"}
@@ -336,8 +333,7 @@ Retourne UNIQUEMENT du JSON valide :
                     return json.loads(response.text)
                 except Exception as err:
                     if "503" in str(err) or "UNAVAILABLE" in str(err):
-                        print(f"Modèle {model_name} saturé (tentative {attempt + 1}/2). Pause de 4s...")
-                        time.sleep(4)
+                        time.sleep(3)
                     else:
                         raise err
 
@@ -416,7 +412,6 @@ def discover_anomaly_seasons(max_pages=3):
 
 
 def fetch_raw_data(url, status, slug):
-    # Bannière officielle par défaut selon la saison
     banner = SEASON_BANNERS.get(slug, "https://placehold.co/1200x600/141c2e/FFF?text=Anomaly")
 
     if slug in HISTORICAL_SEASONS:
@@ -488,7 +483,7 @@ def fetch_raw_data(url, status, slug):
     ifs_raw = []
     has_pending_scores = False
 
-    # Collecte BeautifulSoup résiliente
+    # Collecte conventionnelle BeautifulSoup
     for table in soup.find_all("table"):
         header_row = table.find("tr")
         if not header_row:
@@ -728,8 +723,6 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
             norm_city = normalize_city_name(raw_name).lower().replace(" ", "-")
             anchor_link = f"#{norm_city}"
 
-        linked_name = f"[{raw_name}]({anchor_link})"
-
         if enl_val != "??" and res_val != "??":
             try:
                 e = float(enl_val.replace(",", "").replace(" ", ""))
@@ -744,7 +737,8 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
             winner = t["waiting"]
 
         season_overview.append({
-            "name": linked_name,
+            "name": raw_name,
+            "link": anchor_link,
             "enl": enl_val,
             "res": res_val,
             "winner": winner
@@ -769,9 +763,9 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         lead_badge = t["tie"]
         badge_class = ""
 
-    tmpl_md = env.get_template("template.md.j2")
-    rendered_md = tmpl_md.render(
-        t=t,
+    tmpl_detail = env.get_template("detail_template.html.j2")
+    rendered_html = tmpl_detail.render(
+        title=title,
         season_title=title,
         updated_at=now_iso,
         global_status=global_status,
@@ -781,17 +775,7 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         season_overview=season_overview,
         sites=raw_data.get("sites", []),
         global_ops=raw_data.get("global_ops", []),
-        ifs=raw_data.get("ifs", [])
-    )
-
-    with open(os.path.join(target_dir, f"{slug}.md"), "w", encoding="utf-8") as f:
-        f.write(rendered_md)
-
-    html_content = markdown.markdown(rendered_md, extensions=["tables"])
-    tmpl_detail = env.get_template("detail_template.html.j2")
-    rendered_html = tmpl_detail.render(
-        title=title,
-        content=html_content,
+        ifs=raw_data.get("ifs", []),
         t=t,
         slug=slug,
         official_url=info["url"]
@@ -834,7 +818,6 @@ def main():
 
     sorted_slugs = sorted(scraped_data.keys(), key=get_slug_sort_score)
 
-    # Détection stricte : une saison 'archived' ne devient jamais live
     active_slug = None
     for s_slug in sorted_slugs:
         info = seasons.get(s_slug, {})
