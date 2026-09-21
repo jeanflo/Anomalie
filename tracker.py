@@ -310,7 +310,10 @@ def discover_anomaly_seasons(max_pages=3):
                 has_results = any(k in title_lower or k in href_lower for k in ["result", "score"])
                 has_overview = any(k in title_lower or k in href_lower for k in ["overview", "schedule", "rule"])
 
-                if not (has_results or has_overview):
+                is_results = has_anomaly and has_results
+                is_overview = has_anomaly and has_overview
+
+                if not (is_results or is_overview):
                     continue
 
                 match_slug = re.search(r"/news/([^/?#]+)", href)
@@ -318,7 +321,13 @@ def discover_anomaly_seasons(max_pages=3):
                     continue
 
                 raw_slug = match_slug.group(1)
-                if any(bad in raw_slug.lower() for bad in ["anomalysites", "guidelines", "faq", "instability"]):
+
+                # Filtrage strict pour éliminer les annonces de planning généralistes
+                excluded_patterns = [
+                    "anomalysites", "guidelines", "faq", "instability",
+                    "events", "event-schedule", "quarter", "schedule"
+                ]
+                if any(bad in raw_slug.lower() for bad in excluded_patterns):
                     continue
 
                 slug = re.sub(r"-(?:results|overview|rules|schedule)$", "", raw_slug, flags=re.IGNORECASE)
@@ -330,13 +339,13 @@ def discover_anomaly_seasons(max_pages=3):
                 clean_name = raw_name.replace("plus", "+").title()
                 display_title = f"{clean_name} ({year})" if year else clean_name
 
-                if has_results:
+                if is_results:
                     discovered[slug] = {
                         "title": {"fr": display_title, "en": display_title},
                         "url": full_url,
                         "status": "active"
                     }
-                elif has_overview and slug not in discovered:
+                elif is_overview and slug not in discovered:
                     discovered[slug] = {
                         "title": {"fr": display_title, "en": display_title},
                         "url": full_url,
@@ -357,7 +366,6 @@ def fetch_raw_data(url, status, slug):
     slug_label = slug.split("-")[-1].replace("plus", "+").capitalize()
     fallback_svg = make_svg_banner(slug_label)
 
-    # Bannière officielle explicite ou fallback SVG
     banner = SEASON_BANNERS.get(slug, None)
 
     if slug in HISTORICAL_SEASONS:
