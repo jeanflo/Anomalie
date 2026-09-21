@@ -826,6 +826,7 @@ def main():
 
     sorted_slugs = sorted(scraped_data.keys(), key=get_slug_sort_score)
 
+    # Une saison n'est "live" QUE si elle a effectivement des scores en attente (?? / en cours)
     active_slug = None
     for s_slug in sorted_slugs:
         info = seasons.get(s_slug, {})
@@ -833,11 +834,6 @@ def main():
             active_slug = s_slug
             break
 
-    if active_slug is None:
-        for s_slug in sorted_slugs:
-            if seasons.get(s_slug, {}).get("status") != "upcoming":
-                active_slug = s_slug
-                break
 
     for lang in ["fr", "en"]:
         t = TRANSLATIONS[lang]
