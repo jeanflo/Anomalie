@@ -9,7 +9,7 @@
 
 | {{ t.col_event }} | {{ t.col_enl }} | {{ t.col_res }} | {{ t.col_winner }} |
 | :--- | :---: | :---: | :---: |
-{% for row in season_overview -%}
+{% for row in season_overview %}
 | **{{ row.name }}** | {{ row.enl }} | {{ row.res }} | {{ row.winner }} |
 {% endfor %}
 | **{{ t.total_partial }}** | **{{ enl_total }}** | **{{ res_total }}** | **{% if diff > 0 %}🔵 RES (+{{ diff }}){% elif diff < 0 %}🟢 ENL (+{{ -diff }}){% else %}{{ t.tie }}{% endif %}** |
@@ -43,7 +43,7 @@
 
 | {{ t.col_event }} | {{ t.col_enl }} | {{ t.col_res }} |
 | :--- | :---: | :---: |
-{% for op in global_ops -%}
+{% for op in global_ops %}
 | {{ op.event }} | {{ op.enl }} | {{ op.res }} |
 {% endfor %}
 {% endif %}
@@ -56,7 +56,7 @@
 
 | Phase / Mois | {{ t.col_enl }} | {{ t.col_res }} |
 | :--- | :---: | :---: |
-{% for item in ifs -%}
+{% for item in ifs %}
 | **{{ item.phase }}** | {{ item.enl }} | {{ item.res }} |
 {% endfor %}
 {% endif %}
