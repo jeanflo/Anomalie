@@ -2,7 +2,6 @@ import os
 import re
 import json
 import time
-import unicodedata
 from datetime import datetime, timezone
 import requests
 from bs4 import BeautifulSoup
@@ -101,12 +100,12 @@ HISTORICAL_SEASONS = {
         "url": "https://ingress.com/news/2025-plusbeta-results",
         "status": "archived",
         "season_overview": [
+            {"name": "+Beta Global Op", "enl": "970.2", "res": "1029.8"},
             {"name": "Site: Sendai", "enl": "163.0", "res": "137.0"},
             {"name": "Site: San Diego", "enl": "141.0", "res": "159.0"},
             {"name": "Site: Lyon", "enl": "146.0", "res": "154.0"},
             {"name": "Site: Kaohsiung", "enl": "173.0", "res": "127.0"},
-            {"name": "+Beta Connected Cells", "enl": "967.0", "res": "613.0"},
-            {"name": "+Beta Global Op", "enl": "970.2", "res": "1029.8"}
+            {"name": "+Beta Connected Cells", "enl": "967.0", "res": "613.0"}
         ],
         "enl_total": 2560.2,
         "res_total": 2219.8,
@@ -119,10 +118,10 @@ HISTORICAL_SEASONS = {
         "url": "https://ingress.com/news/2025-plusdelta-results",
         "status": "archived",
         "season_overview": [
+            {"name": "+Delta Global Op", "enl": "981.2", "res": "1018.8"},
             {"name": "Site: Kobe", "enl": "146.0", "res": "154.0"},
             {"name": "Site: Madrid", "enl": "138.0", "res": "162.0"},
-            {"name": "Site: Washington DC", "enl": "128.0", "res": "172.0"},
-            {"name": "+Delta Global Op", "enl": "981.2", "res": "1018.8"}
+            {"name": "Site: Washington DC", "enl": "128.0", "res": "172.0"}
         ],
         "enl_total": 1393.2,
         "res_total": 1306.8,
@@ -136,10 +135,10 @@ HISTORICAL_SEASONS = {
         "status": "archived",
         "season_overview": [
             {"name": "Phase 1 (Madrid, Taichung, Curitiba)", "enl": "539.0", "res": "461.0"},
-            {"name": "Phase 3 (Bangkok, Palermo, Atlanta)", "enl": "549.0", "res": "600.0"},
-            {"name": "Phase 5 (Honolulu, İzmir, Colombo)", "enl": "616.0", "res": "511.0"},
             {"name": "Phase 2 (Kinetic Challenge Op)", "enl": "49.0%", "res": "51.0% (x1.331)"},
-            {"name": "Phase 4 (Reclaimer Challenge Op)", "enl": "49.9%", "res": "50.1% (x1.331)"}
+            {"name": "Phase 3 (Bangkok, Palermo, Atlanta)", "enl": "549.0", "res": "600.0"},
+            {"name": "Phase 4 (Reclaimer Challenge Op)", "enl": "49.9%", "res": "50.1% (x1.331)"},
+            {"name": "Phase 5 (Honolulu, İzmir, Colombo)", "enl": "616.0", "res": "511.0"}
         ],
         "enl_total": 1704.0,
         "res_total": 1572.0,
@@ -182,9 +181,9 @@ HISTORICAL_SEASONS = {
         "url": "https://ingress.com/news/epiphany-dawn-rules",
         "status": "archived",
         "season_overview": [
+            {"name": "Phase 1 & Connected Cells", "enl": "412.0", "res": "488.0"},
             {"name": "Phase 2 (Los Angeles, Porto)", "enl": "380.0", "res": "420.0"},
-            {"name": "Phase 3 (Yokohama)", "enl": "512.0", "res": "688.0"},
-            {"name": "Phase 1 & Connected Cells", "enl": "412.0", "res": "488.0"}
+            {"name": "Phase 3 (Yokohama)", "enl": "512.0", "res": "688.0"}
         ],
         "enl_total": 1304.0,
         "res_total": 1596.0,
@@ -226,12 +225,6 @@ def normalize_city_name(name):
     return clean.strip()
 
 
-def slugify_anchor(text):
-    norm = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
-    norm = re.sub(r"[^\w\s-]", "", norm).strip().lower()
-    return re.sub(r"[-\s]+", "-", norm)
-
-
 def get_slug_sort_score(slug):
     parts = slug.split("-")
     year = int(parts[0]) if parts[0].isdigit() else 2020
@@ -264,7 +257,7 @@ Analyse le code HTML brut officiel de Niantic et extrais avec précision les poi
 Retourne UNIQUEMENT un objet JSON valide respectant scrupuleusement cette structure :
 {
   "season_overview": [
-    {"name": "Nom de l'épreuve/ville (ex: Singapore, Paris, Seoul, Bogotá, Helsinki, Denver, Global Op, First Saturday)", "enl": "score ou ??", "res": "score ou ??"}
+    {"name": "Nom de chaque ville participante individuelle (JAMAIS les dates de vagues comme February 28 Anomaly, mais les vraies villes : Lisbon, Charlotte, Hong Kong, Zagreb, Denver, Singapore, etc.), ainsi que First Saturday et Global Op", "enl": "score ou ??", "res": "score ou ??"}
   ],
   "sites": [
     {
@@ -288,8 +281,9 @@ Retourne UNIQUEMENT un objet JSON valide respectant scrupuleusement cette struct
 
 Consignes strictes :
 - N'extrais JAMAIS les AP bruts (ex: 37,287,327). Prends les Season Points pour les totaux.
-- Pour les villes, sépare bien stealth_ops et urban_ops si distincts, sinon mets la valeur dans stealth_ops et 0.0 dans urban_ops.
-- Pour ifs, liste chaque mois ainsi que la ligne de Total. Si un mois est '???', note '???'.
+- Ignore absolument les lignes de sous-totaux datées (ex: 'February 28 Anomaly', 'March 14 Anomaly', 'Total Points'). Isole chaque ville individuellement.
+- Pour les villes, sépare bien stealth_ops et urban_ops si distincts.
+- Pour ifs, liste chaque mois et la ligne Total.
 """
 
         models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
@@ -443,9 +437,6 @@ def fetch_raw_data(url, status, slug):
             if any("???" in str(i.get("enl", "")) or "???" in str(i.get("res", "")) for i in ai_result.get("ifs", [])):
                 has_pending = True
 
-            for site in ai_result.get("sites", []):
-                site["anchor_id"] = slugify_anchor(site["name"])
-
             return {
                 "banner": banner,
                 "season_overview": ai_result["season_overview"],
@@ -456,7 +447,6 @@ def fetch_raw_data(url, status, slug):
                 "is_upcoming": False
             }
 
-    # Fallback conventionnel
     season_overview_raw = []
     global_ops_raw = []
     ifs_raw = []
@@ -468,13 +458,14 @@ def fetch_raw_data(url, status, slug):
             continue
         headers_text = [clean_text(th).lower() for th in header_row.find_all(["th", "td"])]
 
-        # Tableau général récapitulatif
+        # Détection des tableaux de villes (uniques ou séparés par date comme +Gamma)
         if len(headers_text) >= 3 and "site" in headers_text[0] and "enlightened" in headers_text[1] and "resistance" in headers_text[2]:
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
                 if len(cols) >= 3:
                     name_raw = cols[0].strip()
-                    if name_raw.lower() in ["season points", "total", ""]:
+                    # On ignore rigoureusement les sous-totaux de dates ou de vagues
+                    if any(bad in name_raw.lower() for bad in ["total points", "season points", "total", ""]):
                         continue
                     enl_v = cols[1].strip()
                     res_v = cols[2].strip()
@@ -540,7 +531,7 @@ def fetch_raw_data(url, status, slug):
                         "res": res_clean
                     })
 
-    # Parsing détaillé des Sites
+    # Parsing détaillé des sites
     sites_raw = []
     site_headers = soup.find_all(re.compile(r"^h[2-4]$"), string=re.compile(r"Site:\s*([A-Za-zÀ-ÿ\s\-]+)", re.IGNORECASE))
 
@@ -553,7 +544,6 @@ def fetch_raw_data(url, status, slug):
 
         site_dict = {
             "name": site_name,
-            "anchor_id": slugify_anchor(norm_site),
             "enl_pts": "??",
             "res_pts": "??",
             "stealth_ops": {"enl": "0.0", "res": "0.0"},
@@ -570,7 +560,10 @@ def fetch_raw_data(url, status, slug):
 
         curr = sh.next_sibling
         current_context = ""
-        while curr:
+        safety_counter = 0
+
+        while curr and safety_counter < 300:
+            safety_counter += 1
             if hasattr(curr, "name") and curr.name in ["h2", "h3", "h1"]:
                 break
 
@@ -677,27 +670,35 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
             "card_state": "upcoming"
         }
 
-    sites_list = raw_data.get("sites", [])
-    sites_map = {normalize_city_name(s["name"]).lower(): s.get("anchor_id", slugify_anchor(s["name"])) for s in sites_list}
-
-    city_rows = []
-    global_rows = []
-
-    preset = raw_data.get("preset_totals")
+    season_overview = []
     enl_sum = 0.0
     res_sum = 0.0
 
+    preset = raw_data.get("preset_totals")
+    if preset:
+        enl_sum, res_sum = preset
+
     for row in raw_data["season_overview"]:
         raw_name = row["name"]
-        norm_name = normalize_city_name(raw_name)
         enl_val = row["enl"]
         res_val = row["res"]
         winner = "—"
 
+        lower_name = raw_name.lower()
+        if "first saturday" in lower_name or "satudays" in lower_name or "ifs" in lower_name:
+            anchor_link = "#section-ifs"
+        elif any(k in lower_name for k in ["global op", "link & field", "connected cells", "challenge"]):
+            anchor_link = "#section-global-ops"
+        else:
+            norm_city = normalize_city_name(raw_name).lower().replace(" ", "-")
+            anchor_link = f"#{norm_city}"
+
+        linked_name = f"[{raw_name}]({anchor_link})"
+
         if enl_val != "??" and res_val != "??":
             try:
-                e = float(enl_val.replace(",", "").replace(" ", "").replace("%", ""))
-                r = float(res_val.replace(",", "").replace(" ", "").replace("%", ""))
+                e = float(enl_val.replace(",", "").replace(" ", ""))
+                r = float(res_val.replace(",", "").replace(" ", ""))
                 if not preset:
                     enl_sum += e
                     res_sum += r
@@ -707,42 +708,12 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         else:
             winner = t["waiting"]
 
-        anchor = None
-        lower_name = raw_name.lower()
-        if "first saturday" in lower_name:
-            anchor = "#ifs"
-        elif "global op" in lower_name or "connected cells" in lower_name:
-            anchor = "#global-ops"
-        else:
-            matched_anchor = sites_map.get(norm_name.lower())
-            if matched_anchor:
-                anchor = f"#site-{matched_anchor}"
-
-        is_pending = (
-            enl_val == "??" or res_val == "??"
-            or "???" in str(enl_val) or "???" in str(res_val)
-            or "attente" in lower_name or "pending" in lower_name
-        )
-
-        entry = {
-            "name": raw_name,
-            "anchor": anchor,
+        season_overview.append({
+            "name": linked_name,
             "enl": enl_val,
             "res": res_val,
-            "winner": winner,
-            "is_pending": is_pending
-        }
-
-        if any(k in lower_name for k in ["global op", "first saturday", "connected cells"]):
-            global_rows.append(entry)
-        else:
-            city_rows.append(entry)
-
-    # Villes d'abord, puis Global Ops et IFS en bas
-    season_overview_ordered = city_rows + global_rows
-
-    if preset:
-        enl_sum, res_sum = preset
+            "winner": winner
+        })
 
     enl_sum = round(enl_sum, 1)
     res_sum = round(res_sum, 1)
@@ -763,7 +734,6 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         lead_badge = t["tie"]
         badge_class = ""
 
-
     tmpl_md = env.get_template("template.md.j2")
     rendered_md = tmpl_md.render(
         t=t,
@@ -773,8 +743,8 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
         enl_total=enl_sum,
         res_total=res_sum,
         diff=diff,
-        season_overview=season_overview_ordered,
-        sites=sites_list,
+        season_overview=season_overview,
+        sites=raw_data.get("sites", []),
         global_ops=raw_data.get("global_ops", []),
         ifs=raw_data.get("ifs", [])
     )
@@ -829,14 +799,13 @@ def main():
 
     sorted_slugs = sorted(scraped_data.keys(), key=get_slug_sort_score)
 
-    # Une saison n'est "live" QUE si elle a effectivement des scores en attente (?? / en cours)
+    # Détection stricte : live SEULEMENT si une saison a encore des scores partiels ou '??'
     active_slug = None
     for s_slug in sorted_slugs:
         info = seasons.get(s_slug, {})
         if info.get("status") != "upcoming" and scraped_data[s_slug].get("has_pending_scores"):
             active_slug = s_slug
             break
-
 
     for lang in ["fr", "en"]:
         t = TRANSLATIONS[lang]
