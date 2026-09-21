@@ -3,18 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ t.hub_title }} — Ingress Anomaly Tracking</title>
-  <link rel="stylesheet" href="/assets/style.css">
+  <title>{{ t.hub_title }}</title>
   <style>
     :root {
-      --bg-dark: #0f141c;
-      --card-bg: #141c28;
-      --card-border: #223247;
-      --text-main: #e2e8f0;
+      --bg-dark: #090d16;
+      --card-bg: #111827;
+      --card-border: #1e293b;
+      --text-main: #f1f5f9;
       --text-muted: #94a3b8;
       --enl-color: #00ea62;
       --res-color: #00a2ff;
-      --accent: #2dd4bf;
+      --accent: #38bdf8;
     }
     body {
       background-color: var(--bg-dark);
@@ -22,94 +21,96 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
       padding: 0;
+      line-height: 1.5;
     }
-    .header {
-      padding: 2.5rem 1.5rem 1.5rem;
-      text-align: center;
-      border-bottom: 1px solid var(--card-border);
-      background: linear-gradient(180deg, #162235 0%, var(--bg-dark) 100%);
+    .top-nav {
+      max-width: 1200px;
+      margin: 1rem auto 0;
+      padding: 0 1.5rem;
+      display: flex;
+      justify-content: flex-end;
     }
-    .header h1 {
-      margin: 0 0 0.5rem;
-      font-size: 2.2rem;
-      letter-spacing: 1px;
-      color: #fff;
-    }
-    .header p {
-      color: var(--text-muted);
-      margin: 0 0 1rem;
-    }
-    .update-meta {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-    }
-    .update-meta time, .update-meta strong {
-      color: var(--text-main);
-    }
-    .lang-switcher {
-      display: inline-block;
-      margin-top: 0.75rem;
-      padding: 0.35rem 0.8rem;
-      background: rgba(255, 255, 255, 0.05);
+    .nav-lang {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      padding: 0.25rem 0.75rem;
       border: 1px solid var(--card-border);
       border-radius: 6px;
-      color: var(--text-main);
-      text-decoration: none;
-      font-size: 0.85rem;
-      transition: all 0.2s ease;
-    }
-    .lang-switcher:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.02);
     }
     .container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 2rem 1.5rem;
+      padding: 1.5rem;
     }
-    .standings-panel {
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin: 0;
+    }
+    .standings-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 1.5rem;
       margin-bottom: 2.5rem;
-      text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
     }
-    .standings-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
+    .standings-header {
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+    .standings-header h2 {
+      font-size: 1.2rem;
+      margin: 0 0 0.5rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
       color: var(--text-muted);
     }
-    .standings-bar {
-      height: 14px;
-      border-radius: 7px;
-      background: #334155;
+    .standings-counts {
       display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .count-enl { color: var(--enl-color); }
+    .count-res { color: var(--res-color); }
+    .count-tie { color: #cbd5e1; }
+    .bar-container {
+      width: 100%;
+      height: 14px;
+      background: #334155;
+      border-radius: 999px;
       overflow: hidden;
-      margin-bottom: 0.75rem;
+      display: flex;
+      margin-top: 1rem;
     }
     .bar-enl {
       background: var(--enl-color);
       height: 100%;
+      transition: width 0.5s ease;
     }
     .bar-res {
       background: var(--res-color);
       height: 100%;
+      transition: width 0.5s ease;
     }
-    .standings-stats {
-      display: flex;
-      justify-content: space-around;
-      font-size: 0.95rem;
-    }
-    .stat-enl { color: var(--enl-color); font-weight: bold; }
-    .stat-res { color: var(--res-color); font-weight: bold; }
-    .cards-grid {
+    .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 1.5rem;
+      gap: 1.75rem;
     }
     .card {
       background: var(--card-bg);
@@ -118,47 +119,52 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      position: relative;
-      transition: transform 0.2s ease, border-color 0.2s ease;
       text-decoration: none;
       color: inherit;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
     }
     .card:hover {
       transform: translateY(-4px);
-      border-color: #38bdf8;
+      border-color: #334155;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
     }
     .card-live {
-      border: 2px solid var(--res-color);
-      box-shadow: 0 0 15px rgba(0, 162, 255, 0.2);
+      border: 1px solid rgba(0, 162, 255, 0.4);
+      box-shadow: 0 0 20px rgba(0, 162, 255, 0.15);
     }
-    .card-upcoming {
-      border: 1px dashed #eab308;
-    }
-    .card-banner {
+    .card-img {
       width: 100%;
-      height: 150px;
-      background-size: cover;
-      background-position: center;
-      background-color: #1e293b;
-      position: relative;
+      height: 160px;
+      object-fit: cover;
+      background-color: #0b111e;
+      border-bottom: 1px solid var(--card-border);
+      display: block;
     }
     .badge-status {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 12px;
+      right: 12px;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
       font-size: 0.75rem;
-      font-weight: bold;
-      padding: 4px 8px;
-      border-radius: 4px;
-      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
     .badge-live {
       background: #ef4444;
       color: #fff;
+      animation: pulse 2s infinite;
     }
     .badge-upcoming {
       background: #eab308;
       color: #000;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.75; }
+      100% { opacity: 1; }
     }
     .card-body {
       padding: 1.25rem;
@@ -167,150 +173,109 @@
       flex-grow: 1;
     }
     .card-title {
-      font-size: 1.25rem;
+      font-size: 1.3rem;
+      font-weight: 700;
       margin: 0 0 0.75rem;
-      font-weight: 600;
     }
-    .card-lead {
+    .lead-badge {
       display: inline-block;
-      font-size: 0.8rem;
+      align-self: flex-start;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
       font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 4px;
       margin-bottom: 1rem;
-      width: fit-content;
     }
-    .badge-res { background: rgba(0, 162, 255, 0.15); color: var(--res-color); }
-    .badge-enl { background: rgba(0, 234, 98, 0.15); color: var(--enl-color); }
-    .card-scores {
+    .badge-res {
+      background: rgba(0, 162, 255, 0.15);
+      color: var(--res-color);
+      border: 1px solid rgba(0, 162, 255, 0.3);
+    }
+    .badge-enl {
+      background: rgba(0, 234, 98, 0.15);
+      color: var(--enl-color);
+      border: 1px solid rgba(0, 234, 98, 0.3);
+    }
+    .scores {
       display: flex;
       justify-content: space-between;
       margin-top: auto;
       padding-top: 0.75rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      font-weight: 600;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
       font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .score-enl { color: var(--enl-color); }
+    .score-res { color: var(--res-color); }
+    footer {
+      text-align: center;
+      margin: 3.5rem 0 2rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
-  <header class="header">
-    <h1>{{ t.hub_title }}</h1>
-    <p>{{ t.hub_subtitle }}</p>
-    <div class="update-meta">
-      <span>{{ t.last_update }} : <time class="local-date" datetime="{{ updated_at }}">{{ updated_at }}</time></span>
-      <span class="cron-next"> — Prochaine actualisation : <strong id="next-refresh">Calcul...</strong></span>
-    </div>
-    <div>
-      <a class="lang-switcher" href="{{ t.switch_url }}">{{ t.switch_label }}</a>
-    </div>
-  </header>
+  <div class="top-nav">
+    <a class="nav-lang" href="{{ t.switch_url }}">{{ t.switch_label }}</a>
+  </div>
 
   <main class="container">
-    <section class="standings-panel">
-      <div class="standings-title">{{ t.global_victories }}</div>
-      <div class="standings-bar">
+    <header>
+      <h1>{{ t.hub_title }}</h1>
+      <p>{{ t.hub_subtitle }}</p>
+    </header>
+
+    <section class="standings-card">
+      <div class="standings-header">
+        <h2>{{ t.global_victories }}</h2>
+        <div class="standings-counts">
+          <span class="count-enl">{{ t.victories_enl }} : {{ standings.enl_wins }}</span>
+          <span class="count-tie">{{ t.ties }} : {{ standings.ties }}</span>
+          <span class="count-res">{{ t.victories_res }} : {{ standings.res_wins }}</span>
+        </div>
+      </div>
+      <div class="bar-container">
         <div class="bar-enl" style="width: {{ standings.enl_pct }}%;"></div>
         <div class="bar-res" style="width: {{ standings.res_pct }}%;"></div>
       </div>
-      <div class="standings-stats">
-        <div class="stat-enl">{{ t.victories_enl }} : {{ standings.enl_wins }} ({{ standings.enl_pct }}%)</div>
-        <div class="stat-ties">{{ t.ties }} : {{ standings.ties }}</div>
-        <div class="stat-res">{{ t.victories_res }} : {{ standings.res_wins }} ({{ standings.res_pct }}%)</div>
-      </div>
     </section>
 
-    <div class="cards-grid">
+    <div class="grid">
       {% for season in seasons %}
-      <a class="card {% if season.card_state == 'live' %}card-live{% elif season.card_state == 'upcoming' %}card-upcoming{% endif %}" href="{{ season.html_file }}">
-        <div class="card-banner" style="background-image: url('{{ season.banner }}');">
-          {% if season.card_state == 'live' %}
-            <span class="badge-status badge-live">{{ t.badge_live }}</span>
-          {% elif season.card_state == 'upcoming' %}
-            <span class="badge-status badge-upcoming">{{ t.badge_upcoming }}</span>
-          {% endif %}
-        </div>
+      <a class="card {% if season.card_state == 'live' %}card-live{% endif %}" href="{{ season.html_file }}">
+        {% if season.card_state == 'live' %}
+          <span class="badge-status badge-live">{{ t.badge_live }}</span>
+        {% elif season.card_state == 'upcoming' %}
+          <span class="badge-status badge-upcoming">{{ t.badge_upcoming }}</span>
+        {% endif %}
+        
+        <img 
+          class="card-img" 
+          src="{{ season.banner }}" 
+          alt="{{ season.title }}" 
+          loading="lazy"
+          onerror="this.onerror=null; this.src='https://placehold.co/1200x600/0f172a/38bdf8?text={{ season.slug | upper }}';">
+        
         <div class="card-body">
-          <h2 class="card-title">{{ season.title }}</h2>
+          <h3 class="card-title">{{ season.title }}</h3>
+          
           {% if season.lead_badge %}
-            <div class="card-lead {{ season.badge_class }}">{{ season.lead_badge }}</div>
+            <span class="lead-badge {{ season.badge_class }}">{{ season.lead_badge }}</span>
           {% endif %}
-          <div class="card-scores">
-            <span class="stat-enl">ENL : {{ season.enl }}</span>
-            <span class="stat-res">RES : {{ season.res }}</span>
+          
+          <div class="scores">
+            <span class="score-enl">ENL : {{ season.enl }}</span>
+            <span class="score-res">RES : {{ season.res }}</span>
           </div>
         </div>
       </a>
       {% endfor %}
     </div>
+
+    <footer>
+      <p>{{ t.last_update }} : <time datetime="{{ updated_at }}">{{ updated_at }}</time></p>
+    </footer>
   </main>
-
-  <script>
-    // Formatage des dates UTC générées vers l'heure locale
-    document.querySelectorAll('.local-date').forEach(el => {
-      const d = new Date(el.getAttribute('datetime'));
-      if (!isNaN(d.getTime())) {
-        el.textContent = d.toLocaleString([], {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      }
-    });
-
-    // Calcul de la prochaine exécution du cron job
-    function getNextCronExecution() {
-      const now = new Date();
-      let candidates = [];
-
-      for (let dayOffset = 0; dayOffset <= 8; dayOffset++) {
-        const d = new Date(now.getTime());
-        d.setUTCDate(d.getUTCDate() + dayOffset);
-        const dayOfWeek = d.getUTCDay(); // 0 = Dimanche, 1 = Lundi, 6 = Samedi
-
-        // Règle 1 : Lundi à 12:00 UTC
-        if (dayOfWeek === 1) {
-          const run = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0));
-          if (run > now) candidates.push(run);
-        }
-
-        // Règle 2 : Samedi de 12:00 UTC à 23:30 UTC (toutes les 30 min)
-        if (dayOfWeek === 6) {
-          for (let h = 12; h <= 23; h++) {
-            for (let m of [0, 30]) {
-              const run = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m, 0));
-              if (run > now) candidates.push(run);
-            }
-          }
-        }
-
-        // Règle 3 : Dimanche de 00:00 UTC à 12:00 UTC (toutes les 30 min)
-        if (dayOfWeek === 0) {
-          for (let h = 0; h <= 12; h++) {
-            for (let m of [0, 30]) {
-              if (h === 12 && m > 0) continue;
-              const run = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m, 0));
-              if (run > now) candidates.push(run);
-            }
-          }
-        }
-      }
-
-      candidates.sort((a, b) => a - b);
-      return candidates[0];
-    }
-
-    const nextRun = getNextCronExecution();
-    const refreshEl = document.getElementById('next-refresh');
-    if (refreshEl && nextRun) {
-      refreshEl.textContent = nextRun.toLocaleString([], {
-        weekday: 'short',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-  </script>
 </body>
 </html>
