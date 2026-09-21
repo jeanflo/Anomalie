@@ -94,6 +94,14 @@ TRANSLATIONS = {
     }
 }
 
+SEASON_BANNERS = {
+    "2026-apollo": "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200",
+    "2026-orion": "https://lh3.googleusercontent.com/4z82qZ5V5V4J0X3eF6P8D0G_sF8r4P6a5=e365-pa-nu-w1200",
+    "2026-plusgamma": "https://lh3.googleusercontent.com/V7e5s_D4e7s9_S=e365-pa-nu-w1200",
+    "2025-plusbeta": "https://lh3.googleusercontent.com/b1=e365-pa-nu-w1200",
+    "2025-plusdelta": "https://lh3.googleusercontent.com/d1=e365-pa-nu-w1200"
+}
+
 HISTORICAL_SEASONS = {
     "2026-plusgamma": {
         "title": {"fr": "+Gamma (2026)", "en": "+Gamma (2026)"},
@@ -276,8 +284,8 @@ Analyse le code HTML fourni par Niantic et produis une synthèse rigoureuse et e
 
 Consignes impératives :
 1. "season_overview" : 
-   - Isole chaque ville individuelle avec son nom propre (ex: Denver, Singapore, Paris, Seoul, Lisbon, Charlotte, Hong Kong, Zagreb, Hyderabad, Buenos Aires, etc.) et ses Season Points.
-   - Ne mets AUCUN libellé de vague (ex: 'February 28 Anomaly', 'March 14 Anomaly', 'August 22 Anomaly', 'Total Points', 'Season Points Total' sont STRICTEMENT INTERDITS).
+   - Isole chaque ville individuelle avec son nom propre (ex: Denver, Singapore, Paris, Seoul, Sydney, Prague, Kure City, Lisbon, Charlotte, Hong Kong, Zagreb, Hyderabad, Buenos Aires, etc.) et ses Season Points.
+   - Ne mets AUCUN libellé de date ou de sous-total (ex: 'February 28 Anomaly', 'March 14 Anomaly', 'August 22 Anomaly', 'Total Points', 'Season Points Total' sont STRICTEMENT INTERDITS).
    - Inclus aussi "First Saturday" et "Global Op".
 2. "sites" :
    - Pour chaque ville, extrais : stealth_ops, urban_ops, shards, beacons, uniques.
@@ -408,10 +416,13 @@ def discover_anomaly_seasons(max_pages=3):
 
 
 def fetch_raw_data(url, status, slug):
+    # Bannière officielle par défaut selon la saison
+    banner = SEASON_BANNERS.get(slug, "https://placehold.co/1200x600/141c2e/FFF?text=Anomaly")
+
     if slug in HISTORICAL_SEASONS:
         hist = HISTORICAL_SEASONS[slug]
         return {
-            "banner": "https://placehold.co/600x300/141c2e/FFF?text=+Gamma",
+            "banner": banner,
             "season_overview": hist["season_overview"],
             "sites": hist.get("sites", []),
             "global_ops": hist.get("global_ops", []),
@@ -422,7 +433,6 @@ def fetch_raw_data(url, status, slug):
         }
 
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
-    banner = "https://placehold.co/600x300/141c2e/FFF?text=Anomaly"
 
     try:
         res = requests.get(url, headers=headers, timeout=15)
@@ -432,9 +442,10 @@ def fetch_raw_data(url, status, slug):
 
         og_image = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
         if og_image and og_image.get("content"):
-            banner = og_image["content"].strip()
-            if banner.startswith("/"):
-                banner = f"https://ingress.com{banner}"
+            found_banner = og_image["content"].strip()
+            if found_banner.startswith("/"):
+                found_banner = f"https://ingress.com{found_banner}"
+            banner = found_banner
     except Exception as e:
         print(f"Erreur de chargement pour {slug} ({url}) : {e}")
         html_text = ""
@@ -454,7 +465,7 @@ def fetch_raw_data(url, status, slug):
     if os.getenv("GEMINI_API_KEY") and html_text:
         print(f"Analyse IA Gemini pour {slug}...")
         ai_result = parse_with_gemini(html_text)
-        if ai_result and "season_overview" in ai_result and ai_result["season_overview"]:
+        if ai_result and "season_overview" in ai_result and len(ai_result["season_overview"]) > 2:
             has_pending = any(
                 item.get("enl") in ["??", "???"] or item.get("res") in ["??", "???"] or "en attente" in str(item.get("name", "")).lower()
                 for item in ai_result["season_overview"]
@@ -477,13 +488,14 @@ def fetch_raw_data(url, status, slug):
     ifs_raw = []
     has_pending_scores = False
 
-    # Collecte conventionnelle
+    # Collecte BeautifulSoup résiliente
     for table in soup.find_all("table"):
         header_row = table.find("tr")
         if not header_row:
             continue
         headers_text = [clean_text(th).lower() for th in header_row.find_all(["th", "td"])]
 
+        # Villes / Sites
         if len(headers_text) >= 3 and any("site" in h for h in headers_text[:2]) and any("enlightened" in h for h in headers_text) and any("resistance" in h for h in headers_text):
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
@@ -507,6 +519,7 @@ def fetch_raw_data(url, status, slug):
                             "res": res_v
                         })
 
+        # First Saturday & Global Ops
         elif len(headers_text) >= 3 and ("event" in headers_text[0] or "events" in headers_text[0]):
             table_text = table.get_text().lower()
             is_fs_table = "first saturday" in table_text or "participants" in table_text
@@ -821,11 +834,11 @@ def main():
 
     sorted_slugs = sorted(scraped_data.keys(), key=get_slug_sort_score)
 
-    # Détection stricte du live : une saison archivée ne peut pas redevenir live
+    # Détection stricte : une saison 'archived' ne devient jamais live
     active_slug = None
     for s_slug in sorted_slugs:
         info = seasons.get(s_slug, {})
-        if info.get("status") != "upcoming" and info.get("status") != "archived":
+        if info.get("status") not in ["upcoming", "archived"]:
             if scraped_data[s_slug].get("has_pending_scores"):
                 active_slug = s_slug
                 break
