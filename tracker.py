@@ -36,6 +36,8 @@ TRANSLATIONS = {
         "ties": "Égalités",
         "global_res_lead": "🔵 <strong>La Résistance mène</strong> avec <strong>{res}</strong> contre <strong>{enl}</strong> pts (+{diff} pts)",
         "global_enl_lead": "🟢 <strong>Les Éclairés mènent</strong> avec <strong>{enl}</strong> contre <strong>{res}</strong> pts (+{diff} pts)",
+        "global_res_won": "🔵 <strong>La Résistance remporte la saison</strong> avec <strong>{res}</strong> contre <strong>{enl}</strong> pts (+{diff} pts)",
+        "global_enl_won": "🟢 <strong>Les Éclairés remportent la saison</strong> avec <strong>{enl}</strong> contre <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Égalité parfaite</strong> : {enl} pts",
         "season_overview": "Synthèse Générale de la Saison",
         "city_results": "Résultats des Villes Principales",
@@ -76,6 +78,8 @@ TRANSLATIONS = {
         "ties": "Ties",
         "global_res_lead": "🔵 <strong>The Resistance leads</strong> with <strong>{res}</strong> against <strong>{enl}</strong> pts (+{diff} pts)",
         "global_enl_lead": "🟢 <strong>The Enlightened lead</strong> with <strong>{enl}</strong> against <strong>{res}</strong> pts (+{diff} pts)",
+        "global_res_won": "🔵 <strong>The Resistance won the season</strong> with <strong>{res}</strong> against <strong>{enl}</strong> pts (+{diff} pts)",
+        "global_enl_won": "🟢 <strong>The Enlightened won the season</strong> with <strong>{enl}</strong> against <strong>{res}</strong> pts (+{diff} pts)",
         "global_tie": "⚪ <strong>Perfect tie</strong>: {enl} pts",
         "season_overview": "Season Overview",
         "city_results": "Primary Site Results",
@@ -96,9 +100,7 @@ TRANSLATIONS = {
 SEASON_BANNERS = {
     "2026-apollo": "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200",
     "2026-orion": "https://lh3.googleusercontent.com/4z82qZ5V5V4J0X3eF6P8D0G_sF8r4P6a5=e365-pa-nu-w1200",
-    "2026-plusgamma": "https://lh3.googleusercontent.com/V7e5s_D4e7s9_S=e365-pa-nu-w1200",
-    "2025-plusbeta": "https://lh3.googleusercontent.com/b1=e365-pa-nu-w1200",
-    "2025-plusdelta": "https://lh3.googleusercontent.com/d1=e365-pa-nu-w1200"
+    "2026-plusgamma": "https://lh3.googleusercontent.com/v_gamma=e365-pa-nu-w1200"
 }
 
 HISTORICAL_SEASONS = {
@@ -106,6 +108,7 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "+Gamma (2026)", "en": "+Gamma (2026)"},
         "url": "https://ingress.com/news/2026-plusgamma-results",
         "status": "archived",
+        "banner": "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200",
         "season_overview": [
             {"name": "Lisbon", "enl": "168.0", "res": "132.0"},
             {"name": "Charlotte", "enl": "176.6", "res": "123.4"},
@@ -126,6 +129,7 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "+Beta (2025)", "en": "+Beta (2025)"},
         "url": "https://ingress.com/news/2025-plusbeta-results",
         "status": "archived",
+        "banner": "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200",
         "season_overview": [
             {"name": "+Beta Global Op", "enl": "970.2", "res": "1029.8"},
             {"name": "Sendai", "enl": "163.0", "res": "137.0"},
@@ -144,6 +148,7 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "+Delta (2025)", "en": "+Delta (2025)"},
         "url": "https://ingress.com/news/2025-plusdelta-results",
         "status": "archived",
+        "banner": "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200",
         "season_overview": [
             {"name": "+Delta Global Op", "enl": "981.2", "res": "1018.8"},
             {"name": "Kobe", "enl": "146.0", "res": "154.0"},
@@ -266,83 +271,6 @@ def get_slug_sort_score(slug):
     return (-year, quarter_rank)
 
 
-def parse_with_gemini(html_content):
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return None
-
-    try:
-        from google import genai
-        from google.genai import types
-
-        client = genai.Client(api_key=api_key)
-
-        prompt = """
-Tu es un extracteur d'informations expert pour le jeu Ingress Anomaly.
-Analyse le code HTML brut de Niantic et extrais la synthèse complète de la saison.
-
-Consignes impératives :
-1. "season_overview" : 
-   - Isole chaque ville individuelle avec son nom propre (ex: Denver, Singapore, Paris, Seoul, Sydney, Prague, Kure City, Jersey City, Geneva, Lima, Lisbon, Charlotte, Hong Kong, Zagreb, Hyderabad, Buenos Aires, etc.) et ses Season Points.
-   - NE PLACE JAMAIS les villes dans "global_ops". Les villes appartiennent UNIQUEMENT à la liste principale des villes !
-   - Ne mets AUCUN libellé de sous-total (ex: 'Total Points', 'Season Points Total', 'Total').
-   - Inclus les totaux de "First Saturday" et "Global Op".
-2. "sites" : pour chaque ville, extrais : stealth_ops, urban_ops, shards, beacons, uniques. Si (Cancelled), points = 0.0.
-3. "global_ops" : détaille UNIQUEMENT les challenges globaux (ex: Link & Field, Global Op, Connected Cells).
-4. "ifs" : détaille les mois et le total de First Saturday.
-
-Retourne STRICTEMENT cet objet JSON valide :
-{
-  "season_overview": [
-    {"name": "Nom ville ou Global Op ou First Saturday", "enl": "score ou ??", "res": "score ou ??"}
-  ],
-  "sites": [
-    {
-      "name": "Nom de la ville",
-      "enl_pts": "score total du site ou ??",
-      "res_pts": "score total du site ou ??",
-      "stealth_ops": {"enl": "0.0", "res": "0.0"},
-      "urban_ops": {"enl": "0.0", "res": "0.0"},
-      "shards": {"enl": "score ou ??", "res": "score ou ??"},
-      "beacons": {"enl": "score ou ??", "res": "score ou ??"},
-      "uniques": {"enl": "score ou ??", "res": "score ou ??"}
-    }
-  ],
-  "global_ops": [
-    {"event": "Nom du challenge mondial", "enl": "score", "res": "score"}
-  ],
-  "ifs": [
-    {"phase": "Mois ou Total", "enl": "score ou ???", "res": "score ou ???"}
-  ]
-}
-"""
-
-        models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
-
-        for model_name in models_to_try:
-            for attempt in range(2):
-                try:
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=[prompt, html_content],
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            temperature=0.1
-                        )
-                    )
-                    return json.loads(response.text)
-                except Exception as err:
-                    if "503" in str(err) or "UNAVAILABLE" in str(err):
-                        time.sleep(3)
-                    else:
-                        raise err
-
-        return None
-    except Exception as e:
-        print(f"Extraction IA non disponible : {e}")
-        return None
-
-
 def discover_anomaly_seasons(max_pages=3):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
     discovered = {}
@@ -402,7 +330,7 @@ def discover_anomaly_seasons(max_pages=3):
                     }
 
         except Exception as e:
-            print(f"Erreur sur la page {page} : {e}")
+            print(f"Erreur page {page} : {e}")
             break
 
     for h_slug, h_data in HISTORICAL_SEASONS.items():
@@ -412,10 +340,9 @@ def discover_anomaly_seasons(max_pages=3):
 
 
 def fetch_raw_data(url, status, slug):
-    banner = SEASON_BANNERS.get(slug, "https://placehold.co/1200x600/141c2e/FFF?text=Anomaly")
-
     if slug in HISTORICAL_SEASONS:
         hist = HISTORICAL_SEASONS[slug]
+        banner = hist.get("banner", SEASON_BANNERS.get(slug, "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200"))
         return {
             "banner": banner,
             "season_overview": hist["season_overview"],
@@ -428,6 +355,7 @@ def fetch_raw_data(url, status, slug):
         }
 
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
+    banner = SEASON_BANNERS.get(slug, "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200")
 
     try:
         res = requests.get(url, headers=headers, timeout=15)
@@ -442,7 +370,7 @@ def fetch_raw_data(url, status, slug):
                 found_banner = f"https://ingress.com{found_banner}"
             banner = found_banner
     except Exception as e:
-        print(f"Erreur de chargement pour {slug} ({url}) : {e}")
+        print(f"Erreur chargement pour {slug} ({url}) : {e}")
         html_text = ""
         soup = BeautifulSoup("", "html.parser")
 
@@ -457,40 +385,19 @@ def fetch_raw_data(url, status, slug):
             "is_upcoming": True
         }
 
-    if os.getenv("GEMINI_API_KEY") and html_text:
-        print(f"Analyse IA Gemini pour {slug}...")
-        ai_result = parse_with_gemini(html_text)
-        if ai_result and "season_overview" in ai_result and len(ai_result["season_overview"]) > 2:
-            has_pending = any(
-                item.get("enl") in ["??", "???"] or item.get("res") in ["??", "???"] or "en attente" in str(item.get("name", "")).lower()
-                for item in ai_result["season_overview"]
-            )
-            if any("???" in str(i.get("enl", "")) or "???" in str(i.get("res", "")) for i in ai_result.get("ifs", [])):
-                has_pending = True
-
-            return {
-                "banner": banner,
-                "season_overview": ai_result["season_overview"],
-                "sites": ai_result.get("sites", []),
-                "global_ops": ai_result.get("global_ops", []),
-                "ifs": ai_result.get("ifs", []),
-                "has_pending_scores": has_pending,
-                "is_upcoming": False
-            }
-
     season_overview_raw = []
     global_ops_raw = []
     ifs_raw = []
     has_pending_scores = False
 
-    # Collecte conventionnelle BeautifulSoup
+    # 1. Extraction exhaustive des tableaux
     for table in soup.find_all("table"):
         header_row = table.find("tr")
         if not header_row:
             continue
         headers_text = [clean_text(th).lower() for th in header_row.find_all(["th", "td"])]
 
-        # Villes / Sites
+        # Tableaux de sites
         if len(headers_text) >= 3 and any("site" in h for h in headers_text[:2]) and any("enlightened" in h for h in headers_text) and any("resistance" in h for h in headers_text):
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
@@ -509,7 +416,7 @@ def fetch_raw_data(url, status, slug):
                     norm_name = normalize_city_name(name_raw)
                     if not any(normalize_city_name(item["name"]).lower() == norm_name.lower() for item in season_overview_raw):
                         season_overview_raw.append({
-                            "name": name_raw,
+                            "name": norm_name,
                             "enl": enl_v,
                             "res": res_v
                         })
@@ -562,6 +469,7 @@ def fetch_raw_data(url, status, slug):
                         "res": res_clean
                     })
 
+    # 2. Parsing détaillé des sections "Site: [Nom]"
     sites_raw = []
     site_headers = soup.find_all(re.compile(r"^h[2-4]$"), string=re.compile(r"Site:\s*([A-Za-zÀ-ÿ\s\-]+)", re.IGNORECASE))
 
@@ -670,6 +578,14 @@ def fetch_raw_data(url, status, slug):
 
         sites_raw.append(site_dict)
 
+        # RÈGLE D'OR : Si la ville n'était pas dans la synthèse du haut, on l'y ajoute immédiatement
+        if not any(normalize_city_name(item["name"]).lower() == norm_site.lower() for item in season_overview_raw):
+            season_overview_raw.append({
+                "name": site_name,
+                "enl": site_dict["enl_pts"],
+                "res": site_dict["res_pts"]
+            })
+
     return {
         "banner": banner,
         "season_overview": season_overview_raw,
@@ -749,14 +665,14 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
     diff = round(res_sum - enl_sum, 1)
 
     if diff > 0:
-        status_text = t["res_lead"] if card_state == "live" else t["res_win"]
-        global_status = t["global_res_lead"].format(res=res_sum, enl=enl_sum, diff=diff)
-        lead_badge = f"{status_text} (+{diff})"
+        lead_badge = f"{t['res_lead']} (+{diff})" if card_state == "live" else f"{t['res_win']} (+{diff})"
+        status_tmpl = t["global_res_lead"] if card_state == "live" else t["global_res_won"]
+        global_status = status_tmpl.format(res=res_sum, enl=enl_sum, diff=diff)
         badge_class = "badge-res"
     elif diff < 0:
-        status_text = t["enl_lead"] if card_state == "live" else t["enl_win"]
-        global_status = t["global_enl_lead"].format(res=res_sum, enl=enl_sum, diff=round(-diff, 1))
-        lead_badge = f"{status_text} (+{round(-diff, 1)})"
+        lead_badge = f"{t['enl_lead']} (+{round(-diff, 1)})" if card_state == "live" else f"{t['enl_win']} (+{round(-diff, 1)})"
+        status_tmpl = t["global_enl_lead"] if card_state == "live" else t["global_enl_won"]
+        global_status = status_tmpl.format(res=res_sum, enl=enl_sum, diff=round(-diff, 1))
         badge_class = "badge-enl"
     else:
         global_status = t["global_tie"].format(enl=enl_sum)
