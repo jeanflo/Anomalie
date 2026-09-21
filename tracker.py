@@ -252,16 +252,30 @@ def parse_with_gemini(html_content):
 
         prompt = """
 Tu es un extracteur d'informations expert pour le jeu Ingress Anomaly.
-Analyse le code HTML brut officiel de Niantic et extrais avec précision les points de saison (Season Points) structurés de manière hiérarchique.
+Analyse le code HTML fourni par Niantic et produis une synthèse rigoureuse et complète.
 
-Retourne UNIQUEMENT un objet JSON valide respectant scrupuleusement cette structure :
+Consignes impératives d'extraction :
+1. DANS "season_overview" : 
+   - Isole et liste CHAQUE VILLE INDIVIDUELLE (ex: Lisbon, Charlotte, Hong Kong, Zagreb, Hyderabad, Buenos Aires, Denver, Singapore, Paris, Seoul, etc.) avec ses Season Points finaux.
+   - NE METS JAMAIS de dates de vagues dans la liste (INTERDIT absolu : 'February 28 Anomaly', 'March 14 Anomaly', 'August 22 Anomaly', 'Total Points', 'Season Points Total').
+   - Inclus aussi les totaux pour "First Saturday" et "Global Op".
+2. DANS "sites" :
+   - Crée une entrée pour chaque ville individuelle avec : Stealth Ops, Urban Ops, Shard Battle, Beacon Battle, Anomaly Uniques.
+   - Si une discipline est marquée (Cancelled), ses points valent 0.0.
+   - Ne mets "??" QUE si l'épreuve est explicitement non jouée ou notée "??", "???", "TBD".
+3. DANS "global_ops" :
+   - Détaille les sous-épreuves globales ou le score total de la Global Op.
+4. DANS "ifs" :
+   - Extrais les mois (July, August, September) et la ligne Total Season Points.
+
+Retourne STRICTEMENT cet objet JSON valide :
 {
   "season_overview": [
-    {"name": "Nom de chaque ville participante individuelle (JAMAIS les dates de vagues comme February 28 Anomaly, mais les vraies villes : Lisbon, Charlotte, Hong Kong, Zagreb, Denver, Singapore, etc.), ainsi que First Saturday et Global Op", "enl": "score ou ??", "res": "score ou ??"}
+    {"name": "Nom ville ou Global Op ou First Saturday", "enl": "score ou ??", "res": "score ou ??"}
   ],
   "sites": [
     {
-      "name": "Nom de la ville principale",
+      "name": "Nom de la ville",
       "enl_pts": "score total du site ou ??",
       "res_pts": "score total du site ou ??",
       "stealth_ops": {"enl": "score ou 0.0", "res": "score ou 0.0"},
@@ -272,18 +286,12 @@ Retourne UNIQUEMENT un objet JSON valide respectant scrupuleusement cette struct
     }
   ],
   "global_ops": [
-    {"event": "Nom de l'épreuve ou sous-événement", "enl": "score", "res": "score"}
+    {"event": "Nom épreuve", "enl": "score", "res": "score"}
   ],
   "ifs": [
-    {"phase": "Mois ou total (ex: July, August, September, Season Points Total)", "enl": "valeur ou ???", "res": "valeur ou ???"}
+    {"phase": "Mois ou Total", "enl": "score ou ???", "res": "score ou ???"}
   ]
 }
-
-Consignes strictes :
-- N'extrais JAMAIS les AP bruts (ex: 37,287,327). Prends les Season Points pour les totaux.
-- Ignore absolument les lignes de sous-totaux datées (ex: 'February 28 Anomaly', 'March 14 Anomaly', 'Total Points'). Isole chaque ville individuellement.
-- Pour les villes, sépare bien stealth_ops et urban_ops si distincts.
-- Pour ifs, liste chaque mois et la ligne Total.
 """
 
         models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
@@ -431,7 +439,7 @@ def fetch_raw_data(url, status, slug):
         if ai_result and "season_overview" in ai_result and ai_result["season_overview"]:
             print(f"Extraction IA validée pour {slug} !")
             has_pending = any(
-                item["enl"] == "??" or item["res"] == "??" or "en attente" in item["name"].lower()
+                item.get("enl") in ["??", "???"] or item.get("res") in ["??", "???"] or "en attente" in str(item.get("name", "")).lower()
                 for item in ai_result["season_overview"]
             )
             if any("???" in str(i.get("enl", "")) or "???" in str(i.get("res", "")) for i in ai_result.get("ifs", [])):
@@ -447,6 +455,7 @@ def fetch_raw_data(url, status, slug):
                 "is_upcoming": False
             }
 
+    # Secours : analyse conventionnelle BeautifulSoup
     season_overview_raw = []
     global_ops_raw = []
     ifs_raw = []
@@ -458,18 +467,19 @@ def fetch_raw_data(url, status, slug):
             continue
         headers_text = [clean_text(th).lower() for th in header_row.find_all(["th", "td"])]
 
-        # Détection des tableaux de villes (uniques ou séparés par date comme +Gamma)
-        if len(headers_text) >= 3 and "site" in headers_text[0] and "enlightened" in headers_text[1] and "resistance" in headers_text[2]:
+        # Détection des tableaux de sites (qu'ils soient regroupés ou divisés par date)
+        if len(headers_text) >= 3 and any("site" in h for h in headers_text[:2]) and any("enlightened" in h for h in headers_text) and any("resistance" in h for h in headers_text):
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
                 if len(cols) >= 3:
                     name_raw = cols[0].strip()
-                    # On ignore rigoureusement les sous-totaux de dates ou de vagues
-                    if any(bad in name_raw.lower() for bad in ["total points", "season points", "total", ""]):
+                    # Exclusion stricte des libellés de sous-totaux ou de dates
+                    if any(bad in name_raw.lower() for bad in ["season points", "total points", "total", "anomaly", ""]):
                         continue
                     enl_v = cols[1].strip()
                     res_v = cols[2].strip()
-                    if enl_v in ["??", "TBD", "-"] or res_v in ["??", "TBD", "-"]:
+
+                    if enl_v in ["??", "???", "TBD", "-"] or res_v in ["??", "???", "TBD", "-"]:
                         enl_v = "??"
                         res_v = "??"
                         has_pending_scores = True
@@ -482,11 +492,11 @@ def fetch_raw_data(url, status, slug):
                             "res": res_v
                         })
 
-        # Tableaux Global Ops et IFS
+        # Tableaux First Saturday & Global Ops
         elif len(headers_text) >= 3 and ("event" in headers_text[0] or "events" in headers_text[0]):
             table_text = table.get_text().lower()
             is_fs_table = "first saturday" in table_text or "participants" in table_text
-            
+
             table_has_pending = False
             pending_label = ""
             total_row = None
@@ -680,8 +690,8 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
 
     for row in raw_data["season_overview"]:
         raw_name = row["name"]
-        enl_val = row["enl"]
-        res_val = row["res"]
+        enl_val = str(row["enl"]).strip()
+        res_val = str(row["res"]).strip()
         winner = "—"
 
         lower_name = raw_name.lower()
@@ -799,7 +809,7 @@ def main():
 
     sorted_slugs = sorted(scraped_data.keys(), key=get_slug_sort_score)
 
-    # Détection stricte : live SEULEMENT si une saison a encore des scores partiels ou '??'
+    # Détection stricte : live UNIQUEMENT si une saison a encore des scores partiels ou '??'
     active_slug = None
     for s_slug in sorted_slugs:
         info = seasons.get(s_slug, {})
