@@ -322,7 +322,6 @@ def discover_anomaly_seasons(max_pages=3):
 
                 raw_slug = match_slug.group(1)
 
-                # Filtrage strict pour éliminer les annonces de planning généralistes
                 excluded_patterns = [
                     "anomalysites", "guidelines", "faq", "instability",
                     "events", "event-schedule", "quarter", "schedule"
@@ -365,14 +364,36 @@ def discover_anomaly_seasons(max_pages=3):
 def fetch_raw_data(url, status, slug):
     slug_label = slug.split("-")[-1].replace("plus", "+").capitalize()
     fallback_svg = make_svg_banner(slug_label)
-
     banner = SEASON_BANNERS.get(slug, None)
+
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
+
+    # Récupération de l'illustration officielle sur la page Niantic
+    soup = BeautifulSoup("", "html.parser")
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, "html.parser")
+            if not banner:
+                og_image = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
+                if og_image and og_image.get("content"):
+                    found = og_image["content"].strip()
+                    banner = f"https://ingress.com{found}" if found.startswith("/") else found
+                elif soup.find("article"):
+                    first_img = soup.find("article").find("img")
+                    if first_img and first_img.get("src"):
+                        found = first_img["src"].strip()
+                        banner = f"https://ingress.com{found}" if found.startswith("/") else found
+    except Exception as e:
+        print(f"Bannière non scrapée pour {slug} : {e}")
+
+    if not banner:
+        banner = fallback_svg
 
     if slug in HISTORICAL_SEASONS:
         hist = HISTORICAL_SEASONS[slug]
-        final_banner = banner or fallback_svg
         return {
-            "banner": final_banner,
+            "banner": banner,
             "season_overview": hist["season_overview"],
             "sites": hist.get("sites", []),
             "global_ops": hist.get("global_ops", []),
@@ -381,27 +402,6 @@ def fetch_raw_data(url, status, slug):
             "is_upcoming": False,
             "preset_totals": (hist["enl_total"], hist["res_total"])
         }
-
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
-
-    try:
-        res = requests.get(url, headers=headers, timeout=15)
-        res.raise_for_status()
-        html_text = res.text
-        soup = BeautifulSoup(html_text, "html.parser")
-
-        if not banner:
-            og_image = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
-            if og_image and og_image.get("content"):
-                found = og_image["content"].strip()
-                banner = f"https://ingress.com{found}" if found.startswith("/") else found
-    except Exception as e:
-        print(f"Erreur chargement {slug} : {e}")
-        html_text = ""
-        soup = BeautifulSoup("", "html.parser")
-
-    if not banner:
-        banner = fallback_svg
 
     if status == "upcoming":
         return {
@@ -605,7 +605,6 @@ def fetch_raw_data(url, status, slug):
 
         sites_raw.append(site_dict)
 
-        # RÈGLE D'OR : On garantit la présence de la ville dans season_overview
         if not any(normalize_city_name(item["name"]).lower() == norm_site.lower() for item in season_overview_raw):
             season_overview_raw.append({
                 "name": site_name,
