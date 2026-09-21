@@ -748,18 +748,21 @@ def process_season_for_lang(slug, info, raw_data, card_state, lang, t, env, now_
     res_sum = round(res_sum, 1)
     diff = round(res_sum - enl_sum, 1)
 
-    if diff > 0:
+        if diff > 0:
+        status_text = t["res_lead"] if card_state == "live" else t["res_win"]
         global_status = t["global_res_lead"].format(res=res_sum, enl=enl_sum, diff=diff)
-        lead_badge = f"{t['res_lead']} (+{diff})"
+        lead_badge = f"{status_text} (+{diff})"
         badge_class = "badge-res"
     elif diff < 0:
+        status_text = t["enl_lead"] if card_state == "live" else t["enl_win"]
         global_status = t["global_enl_lead"].format(res=res_sum, enl=enl_sum, diff=round(-diff, 1))
-        lead_badge = f"{t['enl_lead']} (+{round(-diff, 1)})"
+        lead_badge = f"{status_text} (+{round(-diff, 1)})"
         badge_class = "badge-enl"
     else:
         global_status = t["global_tie"].format(enl=enl_sum)
         lead_badge = t["tie"]
         badge_class = ""
+
 
     tmpl_md = env.get_template("template.md.j2")
     rendered_md = tmpl_md.render(
