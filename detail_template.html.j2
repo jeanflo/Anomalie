@@ -1,276 +1,259 @@
 <!DOCTYPE html>
 <html lang="{{ t.lang_code }}">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title }}</title>
+  <title>{{ title }} — Ingress Anomaly</title>
   <style>
-    html {
-      scroll-behavior: smooth;
+    :root {
+      --bg-dark: #0f141c;
+      --card-bg: #141c28;
+      --card-border: #223247;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --enl-color: #00ea62;
+      --res-color: #00a2ff;
+      --accent: #2dd4bf;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0b0f19;
-      color: #e2e8f0;
-      line-height: 1.6;
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem 4rem;
-      position: relative;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
     }
     .top-nav {
+      max-width: 1000px;
+      margin: 1.5rem auto 0;
+      padding: 0 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 2rem;
-      gap: 1rem;
     }
-    .nav-left {
-      display: flex;
-      align-items: center;
-    }
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    a.back {
-      color: #00bbff;
+    .nav-link {
+      color: var(--accent);
       text-decoration: none;
+      font-size: 0.95rem;
       font-weight: 500;
     }
-    a.back:hover { text-decoration: underline; }
-    .nav-btn {
-      color: #e2e8f0;
-      text-decoration: none;
-      font-size: 0.85rem;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 5px 12px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.04);
-      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 1.5rem;
     }
-    .nav-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: #00bbff;
-      color: #ffffff;
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      font-size: 1.5rem;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.5rem;
+    }
+    h3 {
+      font-size: 1.25rem;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .status-box {
+      background: var(--card-bg);
+      border-left: 4px solid var(--accent);
+      border-radius: 4px 8px 8px 4px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .status-box p {
+      margin: 0.25rem 0;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 1.5rem 0;
-      background: #141c2e;
+      margin: 1rem 0 2rem;
+      background: var(--card-bg);
       border-radius: 8px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
     }
     th, td {
-      padding: 10px 14px;
+      padding: 0.75rem 1rem;
       text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--card-border);
+    }
+    th:first-child, td:first-child {
+      text-align: left;
     }
     th {
-      background: #1b263b;
-      color: #94a3b8;
-      font-weight: 600;
-    }
-    tr:last-child td { border-bottom: none; }
-    table a {
-      color: #38bdf8;
-      text-decoration: none;
-      border-bottom: 1px dashed rgba(56, 189, 248, 0.4);
-      transition: color 0.2s ease, border-color 0.2s ease;
-    }
-    table a:hover {
-      color: #7dd3fc;
-      border-bottom-style: solid;
-    }
-    .site-section {
-      scroll-margin-top: 1.5rem;
-    }
-    blockquote {
-      border-left: 4px solid #00bbff;
-      background: rgba(0, 187, 255, 0.08);
-      margin: 1rem 0;
-      padding: 0.8rem 1.2rem;
-      border-radius: 0 8px 8px 0;
-    }
-    hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 2.5rem 0; }
-
-    /* Lignes en attente / en direct (tous tableaux confondus) */
-    tr.row-pending {
-      background: rgba(239, 68, 68, 0.12) !important;
-    }
-    tr.row-pending td {
-      border-top: 1px solid rgba(239, 68, 68, 0.4) !important;
-      border-bottom: 1px solid rgba(239, 68, 68, 0.4) !important;
-      color: #fca5a5 !important;
-    }
-    tr.row-pending td:first-child {
-      border-left: 3px solid #ef4444 !important;
-    }
-    tr.row-pending td:last-child {
-      border-right: 1px solid rgba(239, 68, 68, 0.4) !important;
-    }
-    tr.row-pending a {
-      color: #f87171 !important;
-      border-bottom-color: rgba(239, 68, 68, 0.6) !important;
-    }
-
-    /* Badge clignotant LIVE */
-    .badge-pending-mini {
-      display: inline-block;
-      font-size: 0.65rem;
-      font-weight: 700;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-transform: uppercase;
       letter-spacing: 0.5px;
-      padding: 1px 6px;
-      margin-left: 6px;
-      border-radius: 4px;
-      background: #ef4444;
-      color: #ffffff;
-      vertical-align: middle;
-      animation: pulse-badge 2s infinite;
     }
-
-    @keyframes pulse-badge {
-      0% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(0.96); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-
-    /* Ligne Total final */
-    tr.row-total td {
-      background: rgba(255, 255, 255, 0.04);
+    tr.total-row {
       font-weight: bold;
-      border-top: 2px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      border-top: 2px solid var(--card-border);
     }
-
-    /* Bouton flottant retour en haut */
-    #btn-back-to-top {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #1e293b;
-      color: #38bdf8;
-      border: 1px solid #334155;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.25s ease;
-      z-index: 100;
+    td a {
+      color: var(--accent);
+      text-decoration: none;
     }
-    #btn-back-to-top.visible {
-      opacity: 1;
-      visibility: visible;
+    td a:hover {
+      text-decoration: underline;
     }
-    #btn-back-to-top:hover {
-      background: #00bbff;
-      color: #0b0f19;
-      border-color: #00bbff;
-      transform: translateY(-3px);
+    .site-total {
+      font-size: 1rem;
+      margin: 0.5rem 0 1rem;
+      color: var(--text-muted);
     }
   </style>
 </head>
 <body>
-  <div id="page-top"></div>
-
   <div class="top-nav">
-    <div class="nav-left">
-      <a href="index.html" class="back">{{ t.back }}</a>
-    </div>
-    <div class="nav-right">
-      {% if official_url %}
-      <a href="{{ official_url }}" target="_blank" rel="noopener noreferrer" class="nav-btn">
-        {{ t.official_article }} ↗
-      </a>
-      {% endif %}
-      <a href="{{ t.switch_url }}{{ slug }}.html" class="nav-btn">{{ t.switch_label }}</a>
-    </div>
+    <a class="nav-link" href="{{ t.switch_url }}">{{ t.back }}</a>
+    <a class="nav-link" href="{{ official_url }}" target="_blank" rel="noopener">{{ t.official_article }}</a>
   </div>
 
-  {{ content }}
+  <main class="container">
+    <h1>{{ season_title }}</h1>
 
-  <!-- Bouton de retour en haut -->
-  <button id="btn-back-to-top" title="Haut de page" aria-label="Haut de page">↑</button>
+    <div class="status-box">
+      <p><strong>Statut global :</strong> {{ global_status }}</p>
+      <p><small>{{ t.last_update }} : <time datetime="{{ updated_at }}">{{ updated_at }}</time></small></p>
+    </div>
 
-  <script>
-    // 1. Formatage de toutes les balises <time class="local-date">
-    document.querySelectorAll('.local-date').forEach(el => {
-      const isoString = el.getAttribute('datetime') || el.textContent.trim();
-      if (isoString) {
-        const date = new Date(isoString);
-        if (!isNaN(date.getTime())) {
-          el.textContent = date.toLocaleString('{{ t.lang_code }}', {
-            dateStyle: 'short',
-            timeStyle: 'medium'
-          });
-        }
-      }
-    });
+    <h2>{{ t.season_overview }}</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>{{ t.col_event }}</th>
+          <th>{{ t.col_enl }}</th>
+          <th>{{ t.col_res }}</th>
+          <th>{{ t.col_winner }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in season_overview %}
+        <tr>
+          <td><a href="{{ row.link }}"><strong>{{ row.name }}</strong></a></td>
+          <td>{{ row.enl }}</td>
+          <td>{{ row.res }}</td>
+          <td>{{ row.winner }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td>{{ t.total_partial }}</td>
+          <td>{{ enl_total }}</td>
+          <td>{{ res_total }}</td>
+          <td>
+            {% if diff > 0 %}
+              🔵 RES (+{{ diff }})
+            {% elif diff < 0 %}
+              🟢 ENL (+{{ -diff }})
+            {% else %}
+              {{ t.tie }}
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-    // 2. Détection automatique des scores en attente (??, ???, TBD) sur TOUS les tableaux
-    document.querySelectorAll('table tbody tr, table tr').forEach(row => {
-      if (row.querySelector('th')) return;
+    {% if sites and sites|length > 0 %}
+    <h2>{{ t.city_results }}</h2>
+    {% for site in sites %}
+    <div id="{{ site.name | lower | replace(' ', '-') }}">
+      <h3>📍 {{ site.name }}</h3>
+      <div class="site-total">{{ t.total_site }} : 🟢 <strong>{{ site.enl_pts }}</strong> — 🔵 <strong>{{ site.res_pts }}</strong></div>
+      <table>
+        <thead>
+          <tr>
+            <th>{{ t.col_category }}</th>
+            <th>{{ t.col_enl }}</th>
+            <th>{{ t.col_res }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>🥷 Stealth Ops</td>
+            <td>{{ site.stealth_ops.enl }}</td>
+            <td>{{ site.stealth_ops.res }}</td>
+          </tr>
+          <tr>
+            <td>🏙️ Urban Ops</td>
+            <td>{{ site.urban_ops.enl }}</td>
+            <td>{{ site.urban_ops.res }}</td>
+          </tr>
+          <tr>
+            <td>💎 Shard Battle</td>
+            <td>{{ site.shards.enl }}</td>
+            <td>{{ site.shards.res }}</td>
+          </tr>
+          <tr>
+            <td>📡 Beacon Battle</td>
+            <td>{{ site.beacons.enl }}</td>
+            <td>{{ site.beacons.res }}</td>
+          </tr>
+          <tr>
+            <td>🧭 Anomaly Uniques</td>
+            <td>{{ site.uniques.enl }}</td>
+            <td>{{ site.uniques.res }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+    {% endif %}
 
-      const cells = Array.from(row.querySelectorAll('td'));
-      const hasPendingScore = cells.some(td => {
-        const txt = td.textContent.trim();
-        return txt === '??' || txt === '???' || txt.toLowerCase() === 'tbd';
-      });
+    {% if global_ops and global_ops|length > 0 %}
+    <div id="section-global-ops">
+      <h2>🌐 {{ t.global_ops_title }}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>{{ t.col_event }}</th>
+            <th>{{ t.col_enl }}</th>
+            <th>{{ t.col_res }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for op in global_ops %}
+          <tr>
+            <td>{{ op.event }}</td>
+            <td>{{ op.enl }}</td>
+            <td>{{ op.res }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
 
-      if (hasPendingScore && !row.classList.contains('row-pending')) {
-        row.classList.add('row-pending');
-        
-        const firstCell = cells[0];
-        if (firstCell && !firstCell.querySelector('.badge-pending-mini')) {
-          const badge = document.createElement('span');
-          badge.className = 'badge-pending-mini';
-          badge.textContent = 'LIVE';
-          firstCell.appendChild(badge);
-        }
-      }
-    });
-
-    // 3. Gestion du bouton retour en haut
-    const btnTop = document.getElementById('btn-back-to-top');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 300) {
-        btnTop.classList.add('visible');
-      } else {
-        btnTop.classList.remove('visible');
-      }
-    });
-
-    btnTop.addEventListener('click', () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      if (window.location.hash) {
-        history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
-    });
-
-    // 4. Forcer le démarrage en haut de page lors d'un rechargement (F5)
-    if ('scrollRestoration' in history) {
-      history.scrollRestoration = 'manual';
-    }
-    window.addEventListener('load', () => {
-      if (window.performance && performance.navigation && performance.navigation.type === 1) {
-        window.scrollTo(0, 0);
-        if (window.location.hash) {
-          history.replaceState(null, '', window.location.pathname + window.location.search);
-        }
-      }
-    });
-  </script>
+    {% if ifs and ifs|length > 0 %}
+    <div id="section-ifs">
+      <h2>☕ {{ t.ifs_title }}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Phase / Mois</th>
+            <th>{{ t.col_enl }}</th>
+            <th>{{ t.col_res }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in ifs %}
+          <tr>
+            <td><strong>{{ item.phase }}</strong></td>
+            <td>{{ item.enl }}</td>
+            <td>{{ item.res }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </main>
 </body>
 </html>
