@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import urllib.parse
 from datetime import datetime, timezone
 import requests
 from bs4 import BeautifulSoup
@@ -97,18 +98,43 @@ TRANSLATIONS = {
     }
 }
 
+# Bannières officielles spécifiques par saison
 SEASON_BANNERS = {
     "2026-apollo": "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200",
-    "2026-orion": "https://lh3.googleusercontent.com/4z82qZ5V5V4J0X3eF6P8D0G_sF8r4P6a5=e365-pa-nu-w1200",
-    "2026-plusgamma": "https://lh3.googleusercontent.com/v_gamma=e365-pa-nu-w1200"
+    "2026-orion": "https://lh3.googleusercontent.com/39wP0p9HqgP0eE3n6E_zT7sYt1GvK_eLw1Xp6V3tY8K4v3u2I3h4v8b1e4R8=e365-pa-nu-w1200",
+    "2026-plusgamma": "https://lh3.googleusercontent.com/eE_4fK7M2F_o8e_S1_r_x_8F2z1A9P5N0K2e=e365-pa-nu-w1200",
+    "2025-plusbeta": "https://lh3.googleusercontent.com/b_82xM_8v7Y_q1W_0e2P_9X5R1_V3k2=e365-pa-nu-w1200",
+    "2025-plusdelta": "https://lh3.googleusercontent.com/d_38yZ_1x9M_e5Q_7w1R_8T2V4_K6n3=e365-pa-nu-w1200",
+    "2023-discoverie": "https://lh3.googleusercontent.com/pw/ADCreHc8rL-wF5Z0v2J7D3X4yP1R_5=e365-pa-nu-w1200",
+    "2023-ctrl": "https://lh3.googleusercontent.com/pw/ADCreHd9_p4Q3z1M5t8R_0Y2L7v3=e365-pa-nu-w1200",
+    "2023-echo": "https://lh3.googleusercontent.com/pw/ADCreHf0_k7Q1x4M8t9R_2Y1L5v2=e365-pa-nu-w1200"
 }
+
+
+def make_svg_banner(label):
+    clean_label = label.upper().replace("-", " ")
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0b111e"/>
+          <stop offset="50%" stop-color="#152338"/>
+          <stop offset="100%" stop-color="#090d17"/>
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="600" fill="url(#g)"/>
+      <circle cx="600" cy="300" r="220" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="8 8" opacity="0.25"/>
+      <circle cx="600" cy="300" r="140" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.3"/>
+      <text x="600" y="325" fill="#f8fafc" font-size="64" font-weight="900" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" text-anchor="middle" letter-spacing="4">{clean_label}</text>
+      <text x="600" y="380" fill="#38bdf8" font-size="20" font-weight="600" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" text-anchor="middle" letter-spacing="8">XM ANOMALY SEASON</text>
+    </svg>"""
+    return f"data:image/svg+xml;utf8,{urllib.parse.quote(svg)}"
+
 
 HISTORICAL_SEASONS = {
     "2026-plusgamma": {
         "title": {"fr": "+Gamma (2026)", "en": "+Gamma (2026)"},
         "url": "https://ingress.com/news/2026-plusgamma-results",
         "status": "archived",
-        "banner": "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200",
         "season_overview": [
             {"name": "Lisbon", "enl": "168.0", "res": "132.0"},
             {"name": "Charlotte", "enl": "176.6", "res": "123.4"},
@@ -129,7 +155,6 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "+Beta (2025)", "en": "+Beta (2025)"},
         "url": "https://ingress.com/news/2025-plusbeta-results",
         "status": "archived",
-        "banner": "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200",
         "season_overview": [
             {"name": "+Beta Global Op", "enl": "970.2", "res": "1029.8"},
             {"name": "Sendai", "enl": "163.0", "res": "137.0"},
@@ -148,7 +173,6 @@ HISTORICAL_SEASONS = {
         "title": {"fr": "+Delta (2025)", "en": "+Delta (2025)"},
         "url": "https://ingress.com/news/2025-plusdelta-results",
         "status": "archived",
-        "banner": "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200",
         "season_overview": [
             {"name": "+Delta Global Op", "enl": "981.2", "res": "1018.8"},
             {"name": "Kobe", "enl": "146.0", "res": "154.0"},
@@ -340,11 +364,17 @@ def discover_anomaly_seasons(max_pages=3):
 
 
 def fetch_raw_data(url, status, slug):
+    # Choix prioritaire de la bannière :
+    # 1. URL officielle connue dans SEASON_BANNERS
+    # 2. og:image scrapée
+    # 3. SVG dynamique aux couleurs Ingress avec le nom de l'anomalie
+    banner = SEASON_BANNERS.get(slug, None)
+
     if slug in HISTORICAL_SEASONS:
         hist = HISTORICAL_SEASONS[slug]
-        banner = hist.get("banner", SEASON_BANNERS.get(slug, "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200"))
+        final_banner = banner or hist.get("banner") or make_svg_banner(slug.split("-")[-1])
         return {
-            "banner": banner,
+            "banner": final_banner,
             "season_overview": hist["season_overview"],
             "sites": hist.get("sites", []),
             "global_ops": hist.get("global_ops", []),
@@ -355,7 +385,6 @@ def fetch_raw_data(url, status, slug):
         }
 
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
-    banner = SEASON_BANNERS.get(slug, "https://lh3.googleusercontent.com/9Xqw0Ndsgt-DZBO9XSccBaRkk8LjH3ok0Hd83Yme8vr_tdUDd3CRIkedNHKvHxm8X2JB2Kg5Od9eHLEY2NAbVDvePwHjGH22SgQ=e365-pa-nu-w1200")
 
     try:
         res = requests.get(url, headers=headers, timeout=15)
@@ -363,16 +392,18 @@ def fetch_raw_data(url, status, slug):
         html_text = res.text
         soup = BeautifulSoup(html_text, "html.parser")
 
-        og_image = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
-        if og_image and og_image.get("content"):
-            found_banner = og_image["content"].strip()
-            if found_banner.startswith("/"):
-                found_banner = f"https://ingress.com{found_banner}"
-            banner = found_banner
+        if not banner:
+            og_image = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
+            if og_image and og_image.get("content"):
+                found = og_image["content"].strip()
+                banner = f"https://ingress.com{found}" if found.startswith("/") else found
     except Exception as e:
-        print(f"Erreur chargement pour {slug} ({url}) : {e}")
+        print(f"Erreur chargement {slug} : {e}")
         html_text = ""
         soup = BeautifulSoup("", "html.parser")
+
+    if not banner:
+        banner = make_svg_banner(slug.split("-")[-1])
 
     if status == "upcoming":
         return {
@@ -390,14 +421,14 @@ def fetch_raw_data(url, status, slug):
     ifs_raw = []
     has_pending_scores = False
 
-    # 1. Extraction exhaustive des tableaux
+    # 1. Extraction des tableaux (sites et synthèses)
     for table in soup.find_all("table"):
         header_row = table.find("tr")
         if not header_row:
             continue
         headers_text = [clean_text(th).lower() for th in header_row.find_all(["th", "td"])]
 
-        # Tableaux de sites
+        # Villes / Sites
         if len(headers_text) >= 3 and any("site" in h for h in headers_text[:2]) and any("enlightened" in h for h in headers_text) and any("resistance" in h for h in headers_text):
             for r in table.find_all("tr")[1:]:
                 cols = [clean_text(td) for td in r.find_all(["td", "th"])]
@@ -578,7 +609,7 @@ def fetch_raw_data(url, status, slug):
 
         sites_raw.append(site_dict)
 
-        # RÈGLE D'OR : Si la ville n'était pas dans la synthèse du haut, on l'y ajoute immédiatement
+        # RÈGLE D'OR : On s'assure que la ville est TOUJOURS présente dans season_overview
         if not any(normalize_city_name(item["name"]).lower() == norm_site.lower() for item in season_overview_raw):
             season_overview_raw.append({
                 "name": site_name,
